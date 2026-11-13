@@ -1,0 +1,12 @@
+{% extends '_layout' %}
+{% block title %}{{ entry.title }} | {{ siteName }}{% endblock %}
+{% block breadcrumb %}
+  <nav aria-label="Breadcrumb"><ul><li><a href="{{ siteUrl }}">Home</a></li>{% for ancestor in entry.ancestors.all() %}<li><a href="{{ ancestor.url }}">{{ ancestor.title }}</a></li>{% endfor %}<li aria-current="page">{{ entry.title }}</li></ul></nav>
+{% endblock %}
+{% block content %}
+  <h1>{{ entry.title }}</h1>
+  {% if entry.subtitle %}<p class="subtitle">{{ entry.subtitle }}</p>{% endif %}
+  <div class="body">{{ entry.body|raw }}</div>
+  {% set children = entry.children.all() %}
+  {% if children|length %}<nav aria-label="Child pages"><ul>{% for child in children %}<li><a href="{{ child.url }}">{{ child.title }}</a></li>{% endfor %}</ul></nav>{% endif %}
+{% endblock %}

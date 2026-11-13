@@ -1,0 +1,37 @@
+{% extends '_layout' %}
+{% block title %}Blog | {{ siteName }}{% endblock %}
+{% block breadcrumb %}
+  <nav aria-label="Breadcrumb"><ul><li><a href="{{ siteUrl }}">Home</a></li><li aria-current="page">Blog</li></ul></nav>
+{% endblock %}
+{% block content %}
+  {% set q = craft.app.request.getQueryParam('q') %}
+  <h1>Blog</h1>
+  <form role="search" method="get" action="{{ url('blog') }}">
+    <label for="q">Search the blog</label>
+    <input type="search" id="q" name="q" value="{{ q }}">
+    <button type="submit">Search</button>
+  </form>
+  {% set query = craft.entries.section('blog').orderBy('postDate desc') %}
+  {% if q %}{% set query = query.search(q) %}{% endif %}
+  {% paginate query.limit(5) as pageInfo, articles %}
+  {% if q %}<p role="status">{{ pageInfo.total }} {{ pageInfo.total == 1 ? 'result' : 'results' }} for “{{ q }}”</p>{% endif %}
+  {% for article in articles %}
+    <article>
+      <h2><a href="{{ article.url }}">{{ article.title }}</a></h2>
+      <p>{{ article.summary }}</p>
+    </article>
+  {% else %}
+    <p>No articles found.</p>
+  {% endfor %}
+  {% if pageInfo.totalPages > 1 %}
+    <nav aria-label="Pagination">
+      <ul>
+        {% if pageInfo.prevUrl %}<li><a rel="prev" href="{{ pageInfo.prevUrl }}">Previous</a></li>{% endif %}
+        {% for page, pageUrl in pageInfo.getRangeUrls(1, pageInfo.totalPages) %}
+          <li><a href="{{ pageUrl }}"{% if page == pageInfo.currentPage %} aria-current="page"{% endif %}>{{ page }}</a></li>
+        {% endfor %}
+        {% if pageInfo.nextUrl %}<li><a rel="next" href="{{ pageInfo.nextUrl }}">Next</a></li>{% endif %}
+      </ul>
+    </nav>
+  {% endif %}
+{% endblock %}

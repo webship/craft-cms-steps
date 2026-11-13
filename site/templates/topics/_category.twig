@@ -1,0 +1,13 @@
+{% extends '_layout' %}
+{% block title %}{{ category.title }} | {{ siteName }}{% endblock %}
+{% block breadcrumb %}
+  <nav aria-label="Breadcrumb"><ul><li><a href="{{ siteUrl }}">Home</a></li><li><a href="{{ url('blog') }}">Blog</a></li><li aria-current="page">{{ category.title }}</li></ul></nav>
+{% endblock %}
+{% block content %}
+  <h1>{{ category.title }}</h1>
+  {% for article in craft.entries.section('blog').relatedTo(category).orderBy('postDate desc').all() %}
+    <article><h2><a href="{{ article.url }}">{{ article.title }}</a></h2><p>{{ article.summary }}</p></article>
+  {% else %}
+    <p>No articles in this topic.</p>
+  {% endfor %}
+{% endblock %}

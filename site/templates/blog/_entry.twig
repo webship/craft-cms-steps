@@ -1,0 +1,34 @@
+{% extends '_layout' %}
+{% block title %}{{ entry.title }} | {{ siteName }}{% endblock %}
+{% block breadcrumb %}
+  <nav aria-label="Breadcrumb"><ul><li><a href="{{ siteUrl }}">Home</a></li><li><a href="{{ url('blog') }}">Blog</a></li><li aria-current="page">{{ entry.title }}</li></ul></nav>
+{% endblock %}
+{% block content %}
+  <article>
+    <h1>{{ entry.title }}</h1>
+    <p class="meta">
+      <time datetime="{{ entry.postDate|atom }}">{{ entry.postDate|date('j F Y') }}</time>
+      by <span class="author">{{ entry.author.fullName }}</span>,
+      <span class="kind">{{ entry.kind.label }}</span>
+      {% if entry.featured %}<strong class="featured">Featured</strong>{% endif %}
+    </p>
+    {% set image = entry.heroImage.one() %}
+    {% if image %}<img class="hero" src="{{ image.url }}" alt="{{ image.alt }}" width="{{ image.width }}" height="{{ image.height }}">{% endif %}
+    <p class="summary">{{ entry.summary }}</p>
+    <div class="body">{{ entry.body|raw }}</div>
+    {% for block in entry.blocks.all() %}
+      {% if block.type.handle == 'quote' %}
+        <blockquote>{{ block.text }}</blockquote>
+      {% else %}
+        <section class="text-block">{% if block.heading %}<h2>{{ block.heading }}</h2>{% endif %}<p>{{ block.text }}</p></section>
+      {% endif %}
+    {% endfor %}
+    {% if entry.eventDate %}<p class="event-date">Event date: <time datetime="{{ entry.eventDate|date('Y-m-d') }}">{{ entry.eventDate|date('j F Y') }}</time></p>{% endif %}
+    {% set topics = entry.topics.all() %}
+    {% if topics|length %}<p class="topics">Topics: {% for topic in topics %}<a href="{{ topic.url }}">{{ topic.title }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</p>{% endif %}
+    {% set keywords = entry.keywords.all() %}
+    {% if keywords|length %}<p class="keywords">Keywords: {{ keywords|map(tag => tag.title)|join(', ') }}</p>{% endif %}
+    {% set related = entry.relatedPages.all() %}
+    {% if related|length %}<aside aria-label="Related pages"><ul>{% for page in related %}<li><a href="{{ page.url }}">{{ page.title }}</a></li>{% endfor %}</ul></aside>{% endif %}
+  </article>
+{% endblock %}
