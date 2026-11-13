@@ -61,4 +61,5 @@ ddev exec "EDITOR_PASSWORD='${EDITOR_PASSWORD:-}' AUTHOR_PASSWORD='${AUTHOR_PASS
 if [ -n "${GITHUB_ENV:-}" ]; then
   echo "LAUNCH_URL=$SITE_URL" >> "$GITHUB_ENV"
 fi
-echo "Built $(ddev craft --version 2>/dev/null | tail -1 || true) at $SITE_URL"
+CMS_INSTALLED="$(ddev composer show craftcms/cms 2>/dev/null | awk '/^versions/ {print $NF}')"
+echo "Built Craft CMS ${CMS_INSTALLED:-(unknown version)} at $SITE_URL"
