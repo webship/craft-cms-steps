@@ -54,6 +54,7 @@ npm install --save-dev @webship-js/craft-cms-steps
      launchUrl: process.env.LAUNCH_URL || 'https://your-site.ddev.site',
      cpTrigger: 'admin',   // the first segment of the control panel address
      pageTrigger: 'p',     // what comes before the page number of a listing
+     mailUrl: 'https://your-site.ddev.site:8026', // the mailbox of the site (Mailpit), for the password reset steps
      users: {
        editor: { username: 'editor', password: process.env.EDITOR_PASSWORD },
      },
@@ -83,8 +84,8 @@ Feature: Entries
 
 | File | Steps | Covers |
 | --- | --- | --- |
-| `craft-session.steps.js` | 7 | Login by a handle of the users registry or by credentials, logout, who is signed in, the login form and its errors. |
-| `craft-cp.steps.js` | 13 | Control panel pages by name, the primary navigation, the breadcrumb, the heading, notifications, the "Unauthorized" screen, the section navigation, the system name. |
+| `craft-session.steps.js` | 12 | Login by a handle of the users registry or by credentials, logout, who is signed in, the login form and its errors, a password reset through the mail. |
+| `craft-cp.steps.js` | 15 | Control panel pages by name, the primary navigation and its sub navigation, the breadcrumb and the menu of a crumb, the heading, notifications, the "Unauthorized" screen, the section navigation, the system name. |
 | `craft-index.steps.js` | 22 | The element index: sources, search, the status filter, sorting, views, pagination, items, statuses, columns, selection, bulk actions, cleanup by title. |
 | `craft-editor.steps.js` | 22 | The edit form: new entries and categories, saving, menus, tabs, stored changes, drafts and revisions, slide-out editors, the preview, the page on the site. |
 | `craft-fields.steps.js` | 25 | Fields by label: text, rich text, lightswitch, dropdown, date, relation fields, uploads, tags, matrix blocks, errors. |
@@ -176,12 +177,14 @@ development domain.
 
 One example of each step; the JSDoc block above each definition holds five.
 
-### `craft-cp.steps.js` (13)
+### `craft-cp.steps.js` (15)
 
 - `I go to the control panel page "entries"`
 - `I click "Entries" in the control panel navigation`
 - `I should see "Entries" in the control panel navigation`
 - `the control panel navigation item "Entries" should be selected`
+- `I click "Tokens" under "GraphQL" in the control panel navigation`
+- `I choose "Notes" from the menu of the "Blog" crumb`
 - `the control panel breadcrumb should be "Entries > Blog > Launch day"`
 - `I click "Blog" in the control panel breadcrumb`
 - `the control panel heading should be "Entries"`
@@ -270,7 +273,7 @@ One example of each step; the JSDoc block above each definition holds five.
 - `I open "Launch day" from the index`
 - `there is no entry titled "Draft idea"`
 
-### `craft-session.steps.js` (7)
+### `craft-session.steps.js` (12)
 
 - `I am logged in to the control panel as "admin"`
 - `I log in to the control panel with the username "admin" and the password "wrong-password"`
@@ -279,6 +282,11 @@ One example of each step; the JSDoc block above each definition holds five.
 - `I should be logged in to the control panel as "admin"`
 - `I should see the control panel login form`
 - `I should see the login error "Invalid username or password."`
+- `I ask for a password reset for "author"`
+- `I should see the password reset confirmation`
+- `I open the password reset link sent to "author@example.com"`
+- `I choose the new password "Author123456789!"`
+- `I should see the new password error "should contain at least 6 characters"`
 
 ### `craft-site.steps.js` (5)
 
@@ -303,11 +311,17 @@ SITE_DIR="$PWD/../craft-cms-site" .github/scripts/build-ddev-site.sh
 npm run test:examples      # the examples and the features against the step patterns
 npx cucumber-js --dry-run  # no undefined and no ambiguous step
 npm test                   # the suite, against the site
+npm run test:must-fail     # assertions that must fail, each with its message
 ```
 
 `LAUNCH_URL` points the suite at another site; `FEATURES` runs a subset
 (`FEATURES=tests/features/entries.feature npm test`); `CUCUMBER_TAGS=@critical`
 runs the smoke lane; `HEADLESS=false` shows the browser.
+
+`tests/must-fail/` holds scenarios that assert something that is not true on
+the test site. `npm run test:must-fail` runs them and checks that each one
+fails at its last step, with the message it announces and a hint: a step that
+cannot fail proves nothing.
 
 The suite leaves the site as it found it: content a scenario creates is removed
 (trash included), content of the site build a scenario changes is changed back.

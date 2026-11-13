@@ -32,3 +32,25 @@ Feature: The control panel session
     Given I am an anonymous user
     When I go to "/admin/content/entries"
     Then I should see the control panel login form
+
+  Scenario: A password that is too short never reaches the server
+    When I log in to the control panel with the username "admin" and the password "short"
+    Then I should see the login error "Password should contain at least 6 characters."
+    And I should see the control panel login form
+
+  Scenario: The login form confirms a password reset whoever asks
+    When I ask for a password reset for "nobody-with-that-name"
+    Then I should see the password reset confirmation
+    And I should see "Check your email for instructions to reset your password."
+
+  Scenario: An account resets its password through the mail
+    When I ask for a password reset for "author"
+    Then I should see the password reset confirmation
+    When I open the password reset link sent to "author@example.com"
+    Then I should see "Choose a new password"
+    When I choose the new password "abc"
+    Then I should see the new password error "should contain at least 6 characters"
+    When I choose the new password of "author"
+    Then I should see the control panel login form
+    When I log in to the control panel as "author"
+    Then I should be logged in to the control panel as "author"

@@ -13,7 +13,8 @@ module.exports = {
     tags: process.env.CUCUMBER_TAGS || 'not @wip and not @auth-setup',
     format: [
       '@cucumber/pretty-formatter',
-      'json:tests/reports/cucumber_report.json',
+      // REPORT_NAME=must-fail keeps the report of another run (tests/check-must-fail.js) apart.
+      `json:tests/reports/${process.env.REPORT_NAME || 'cucumber_report'}.json`,
     ],
     formatOptions: {
       colorsEnabled: true,
@@ -35,6 +36,8 @@ module.exports = {
       // page number of a paginated listing (the `pageTrigger` general setting).
       cpTrigger: process.env.CP_TRIGGER || 'admin',
       pageTrigger: process.env.PAGE_TRIGGER || 'p',
+      // The mailbox that catches the mail of the site (the password reset steps read it): the Mailpit of the DDEV project.
+      mailUrl: process.env.MAIL_URL || (process.env.LAUNCH_URL || 'https://craftcmssteps.ddev.site').replace(/\/+$/, '') + ':8026',
       // An account that logged in once keeps its session for the rest of the run: later scenarios take it over instead
       // of filling in the login form again. The system limits login attempts from one address (10 a minute by default).
       reuseSessions: process.env.REUSE_SESSIONS !== 'false',

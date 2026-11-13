@@ -252,6 +252,62 @@ function resolveUser(world, handle) {
 }
 
 // ---------------------------------------------------------------------------
+// The mailbox of the test site
+// ---------------------------------------------------------------------------
+
+/**
+ * The address of the mailbox that catches the mail of the test site
+ * (`worldParameters.mailUrl` in cucumber.js): a Mailpit, which every DDEV
+ * project has at port 8026.
+ */
+function mailUrl(world) {
+  const url = world.parameters && world.parameters.mailUrl;
+  if (!url) {
+    throw friendly({ message: 'No mailbox is configured.', hint: 'Set worldParameters.mailUrl in cucumber.js to the Mailpit of the test site, for example https://your-site.ddev.site:8026.' });
+  }
+  return String(url).replace(/\/+$/, '');
+}
+
+/**
+ * The newest e-mail to an address that arrived after a moment in time, once it
+ * is there. The message is removed from the mailbox when `remove` is set, so a
+ * later scenario never reads it.
+ *
+ * @returns {Promise<{subject: string, text: string, html: string}>}
+ */
+async function mailTo(world, address, { since = 0, remove = false } = {}) {
+  const request = world.page.context().request;
+  const base = mailUrl(world);
+  const deadline = Date.now() + budget(world) * 2;
+  let found = null;
+  let problem = '';
+  for (;;) {
+    try {
+      const response = await request.get(`${base}/api/v1/search?query=${encodeURIComponent('to:' + address)}`, { failOnStatusCode: false, ignoreHTTPSErrors: true });
+      if (response.ok()) {
+        const messages = ((await response.json()).messages || []).filter((message) => !since || Date.parse(message.Created) >= since - 2000);
+        problem = 'it has none for that address';
+        if (messages.length) { found = messages[0]; break; }
+      } else {
+        problem = `the mailbox answered HTTP ${response.status()}`;
+      }
+    } catch (err) {
+      problem = clean(err && err.message).split(' Call log')[0];
+    }
+    if (Date.now() > deadline) break;
+    await world.page.waitForTimeout(300);
+  }
+  if (!found) {
+    throw friendly({ message: `No e-mail to ${address} arrived in the mailbox at ${base} (${problem}).`, hint: 'The site must send its mail to this mailbox, and the address must be the one of the account. Check worldParameters.mailUrl in cucumber.js.' });
+  }
+  const message = await (await request.get(`${base}/api/v1/message/${found.ID}`, { ignoreHTTPSErrors: true })).json();
+  if (remove) {
+    await request.delete(`${base}/api/v1/messages`, { data: { IDs: [found.ID] }, ignoreHTTPSErrors: true, failOnStatusCode: false }).catch(() => {});
+  }
+  return { subject: message.Subject || '', text: message.Text || '', html: message.HTML || '' };
+}
+
+// ---------------------------------------------------------------------------
 // The control panel
 // ---------------------------------------------------------------------------
 
@@ -269,18 +325,25 @@ const CP_PAGES = {
   'updates': 'utilities/updates',
   'queue manager': 'utilities/queue-manager',
   'caches': 'utilities/clear-caches',
+  'deprecation warnings': 'utilities/deprecation-errors',
   'settings': 'settings',
   'general settings': 'settings/general',
+  'sites': 'settings/sites',
+  'routes': 'settings/routes',
+  'email settings': 'settings/email',
   'sections': 'settings/sections',
   'entry types': 'settings/entry-types',
   'fields': 'settings/fields',
-  'sites': 'settings/sites',
-  'filesystems': 'settings/filesystems',
+  'globals settings': 'settings/globals',
+  'volumes': 'settings/assets',
   'asset settings': 'settings/assets',
+  'filesystems': 'settings/filesystems',
+  'image transforms': 'settings/assets/transforms',
   'category groups': 'settings/categories',
   'tag groups': 'settings/tags',
-  'user settings': 'settings/users',
-  'user groups': 'settings/users/groups',
+  'user groups': 'settings/users',
+  'user fields': 'settings/users/fields',
+  'user settings': 'settings/users/settings',
   'plugins': 'settings/plugins',
   'graphql': 'graphql',
   'plugin store': 'plugin-store',
@@ -303,9 +366,23 @@ function cpChrome(world) {
   return world.page.locator('#global-sidebar');
 }
 
+/**
+ * The message screen of the control panel: a page without the chrome that holds
+ * a heading and a sentence. A forbidden request gets it ("Unauthorized"), and so
+ * does an address that does not exist ("Page Not Found").
+ */
+function messageScreen(world) {
+  return world.page.locator('body.message .message-container');
+}
+
 /** The "Unauthorized" screen the control panel answers a forbidden request with. */
 function deniedScreen(world) {
-  return world.page.locator('body.message .message-container');
+  return messageScreen(world).filter({ has: world.page.locator('h2', { hasText: /^\s*(Unauthorized|Forbidden)\s*$/ }) });
+}
+
+/** The "Page Not Found" screen the control panel answers an address it does not know with. */
+function missingScreen(world) {
+  return messageScreen(world).filter({ has: world.page.locator('h2', { hasText: /^\s*Page Not Found\s*$/ }) });
 }
 
 /** Open a control panel page by name or path and wait for the chrome or the denied screen. */
@@ -315,6 +392,12 @@ async function openCpPage(world, name) {
     await open(world, url);
     await world.page.locator('#global-sidebar, body.message .message-container, form.login-form').first().waitFor({ state: 'attached', timeout: budget(world) });
   }, `The step opened ${url}. Check launchUrl and worldParameters.cpTrigger in cucumber.js.`);
+  if (await missingScreen(world).count()) {
+    throw friendly({
+      message: `The control panel has no page "${name}": ${url} answered "Page Not Found".`,
+      hint: `Use one of the names (${Object.keys(CP_PAGES).join(', ')}) or the path after the control panel trigger, as the address bar shows it.`,
+    });
+  }
 }
 
 /** Fail with a friendly error unless the control panel chrome is on the page. */
@@ -769,10 +852,14 @@ module.exports = {
   assertPresence,
   eventually,
   resolveUser,
+  mailUrl,
+  mailTo,
   CP_PAGES,
   CP_HINT,
   cpChrome,
+  messageScreen,
   deniedScreen,
+  missingScreen,
   openCpPage,
   requireCp,
   recordNotifications,

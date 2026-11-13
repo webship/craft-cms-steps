@@ -22,7 +22,16 @@ Feature: The control panel navigation
     And I should see "Users" in the control panel navigation
     And I should see "Utilities" in the control panel navigation
     And I should see "Settings" in the control panel navigation
+    And I should see "GraphQL" in the control panel navigation
     And I should not see "Globals" in the control panel navigation
+    And I should not see "Tags" in the control panel navigation
+
+  Scenario: An item of the navigation unfolds its own pages
+    When I click "Tokens" under "GraphQL" in the control panel navigation
+    Then the control panel heading should be "GraphQL Tokens"
+    And the control panel navigation item "GraphQL" should be selected
+    When I click "Schemas" under "GraphQL" in the control panel navigation
+    Then the control panel heading should be "GraphQL Schemas"
 
   Scenario: A page opens by its name
     When I go to the control panel page "sections"
@@ -31,6 +40,31 @@ Feature: The control panel navigation
     And the control panel navigation item "Settings" should be selected
     And I should see "Blog"
     And I should see "Pages"
+
+  Scenario Outline: The named pages are the ones the control panel has
+    When I go to the control panel page "<name>"
+    Then the control panel heading should be "<heading>"
+
+    Examples:
+      | name            | heading            |
+      | dashboard       | Dashboard          |
+      | categories      | Categories         |
+      | assets          | Assets             |
+      | users           | Users              |
+      | my account      | My Account         |
+      | system report   | System Report      |
+      | settings        | Settings           |
+      | general settings | General Settings  |
+      | entry types     | Entry Types        |
+      | fields          | Fields             |
+      | sites           | Sites              |
+      | volumes         | Asset Settings     |
+      | filesystems     | Asset Settings     |
+      | category groups | Category Groups    |
+      | tag groups      | Tag Groups         |
+      | user groups     | User Settings      |
+      | user settings   | User Settings      |
+      | plugins         | Plugins            |
 
   Scenario: A page opens by its path
     When I go to the control panel page "content/entries/pages"
@@ -46,6 +80,13 @@ Feature: The control panel navigation
     When I click "Blog" in the control panel breadcrumb
     Then the control panel heading should be "Entries"
     And the "Blog" source of the index should be selected
+
+  Scenario: The section crumb of an entry leads to the other sections
+    Given I am on the control panel page "content/entries/blog"
+    When I open "Launch day" from the index
+    And I choose "Pages" from the menu of the "Blog" crumb
+    Then the control panel heading should be "Entries"
+    And the "Pages" source of the index should be selected
 
   Scenario: The section navigation of an account
     Given I am on the control panel page "users"
