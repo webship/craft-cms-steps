@@ -10,7 +10,7 @@
 //      with it (this pack, webship-js's built-in steps and any other pack
 //      cucumber.js requires), so a phrasing that drifts or turns ambiguous
 //      fails the build,
-//   3. every step in tests/features matches exactly one definition.
+//   3. every step in tests/features and tests/must-fail matches exactly one definition.
 //
 // Usage: node tests/check-examples.js   (npm run test:examples)
 
@@ -115,9 +115,10 @@ for (const d of packDefs) {
 }
 
 let featureSteps = 0;
-if (fs.existsSync(FEATURES_DIR)) {
-  for (const f of fs.readdirSync(FEATURES_DIR).filter((f) => f.endsWith('.feature'))) {
-    const lines = fs.readFileSync(path.join(FEATURES_DIR, f), 'utf8').split('\n');
+// The must-fail scenarios (tests/check-must-fail.js runs them) are written with the same steps.
+for (const dir of [FEATURES_DIR, path.join(ROOT, 'tests', 'must-fail')].filter((d) => fs.existsSync(d))) {
+  for (const f of fs.readdirSync(dir).filter((f) => f.endsWith('.feature'))) {
+    const lines = fs.readFileSync(path.join(dir, f), 'utf8').split('\n');
     lines.forEach((l, i) => {
       const m = l.match(/^\s*(Given|When|Then|And|But|\*)\s+(.*)$/);
       if (!m) return;

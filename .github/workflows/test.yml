@@ -63,6 +63,9 @@ jobs:
       - name: Run the test suite again (it leaves the site as it found it)
         run: npx cucumber-js
 
+      - name: Run the assertions that must fail
+        run: npm run test:must-fail
+
       - name: Upload test report
         if: always()
         uses: actions/upload-artifact@v4

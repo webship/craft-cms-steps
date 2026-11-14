@@ -9,8 +9,8 @@ site.
 
 | Feature | Covers |
 | --- | --- |
-| `session` | Logging in to and out of the control panel, a wrong password, an account without access. |
-| `control-panel` | The primary navigation, pages by name and by path, the breadcrumb, the heading, the section navigation. |
+| `session` | Logging in to and out of the control panel, a wrong password, an account without access, a password reset through the mail. |
+| `control-panel` | The primary navigation and its sub navigation, pages by name and by path, the breadcrumb and the menu of a crumb, the heading, the section navigation. |
 | `permissions` | What an author and an editor see and may open, the "Unauthorized" screen, the permissions screen, the users index. |
 | `entries` | Create, validate, change, discard changes, disable, delete and restore an entry; save and keep editing. |
 | `drafts-and-revisions` | A draft that stays away from the site until it is applied, revisions, the drafts of the index. |

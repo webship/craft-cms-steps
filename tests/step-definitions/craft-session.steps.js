@@ -1,8 +1,8 @@
 'use strict';
 
 // The control panel session: logging in by a handle of the users registry or by
-// credentials, logging out, and what the control panel says about who is
-// signed in.
+// credentials, logging out, what the control panel says about who is signed
+// in, and resetting a password through the mail the system sends.
 //
 // Accounts are configuration, not test data: they are listed in cucumber.js
 // (`worldParameters.users`) and created once by the site build. A feature never
@@ -22,6 +22,7 @@ const {
   settle,
   assertPresence,
   resolveUser,
+  mailTo,
   cpChrome,
   recordNotifications,
 } = require('./craft-helpers');
@@ -142,7 +143,7 @@ Given(/^(I |we )*(am logged in|are logged in|log in) to the control panel as "([
     throw friendly({
       message: `Could not log in to the control panel as "${handle}" (username "${user.username}"): ${error}`,
       hint: /rate limit/i.test(error)
-        ? 'The system allows a number of login attempts a minute from one address (the `defaultRateLimit` general setting, 10 by default). Keep session reuse on (worldParameters.reuseSessions), or raise the limit on the test site.'
+        ? 'The login form answers "Rate limit exceeded." from the 11th attempt within a minute from one address. Keep session reuse on (worldParameters.reuseSessions), or wait a minute.'
         : 'Check the password of the account in worldParameters.users, that the site build created the account, and that it may access the control panel.',
     });
   }
@@ -287,5 +288,142 @@ Then(/^(I |we )*should see the login error "([^"]*)"$/, async function (pronounC
   throw friendly({
     message: `Expected the login error "${text}". The login form shows: ${error || 'no error'}${(await cpChrome(this).count()) ? ' (the login succeeded)' : ''}.`,
     hint: 'The error appears under the form in `.login-errors` after a failed login.',
+  });
+});
+
+const RESET_HINT = 'The login form has a "Forgot password?" button that swaps it for `form.login-reset-password`; the system then mails a link to <control panel>/set-password.';
+
+/**
+ * Ask for a password reset on the control panel login form, as a person does:
+ * "Forgot password?", the username or the email address (a handle of the users
+ * registry stands for its username), "Reset password". The form answers with
+ * the same dialog whether the account exists or not.
+ *
+ * Example #1: When I ask for a password reset for "author"
+ * Example #2: When we ask for a password reset for "editor"
+ * Example #3: When I ask for a password reset for "author@example.com"
+ * Example #4: And I ask for a password reset for "nobody-with-that-name"
+ * Example #5: Given I ask for a password reset for "admin"
+ */
+When(/^(I |we )*ask for a password reset for "([^"]*)"$/, async function (pronounCase, who) {
+  const users = (this.parameters && this.parameters.users) || {};
+  const username = users[who] ? (users[who].username || who) : who;
+  await openLoginForm(this);
+  const forgot = this.page.locator('form.login-form .login-forgot-password');
+  const form = this.page.locator('form.login-reset-password');
+  try {
+    await forgot.click({ timeout: budget(this) });
+    await form.waitFor({ state: 'visible', timeout: budget(this) });
+  } catch (err) {
+    throw friendly({ message: 'The login form did not show its password reset form.', cause: err, hint: RESET_HINT });
+  }
+  this.__resetAskedAt = Date.now();
+  await form.locator('.login-username').fill(username);
+  await form.locator('button[type="submit"]').click();
+  // One of two outcomes: the "check your email" dialog, or an error under the field.
+  const dialog = this.page.locator('.modal.email-sent');
+  const error = form.locator('.login-errors:not(.hidden)');
+  try {
+    await dialog.or(error).first().waitFor({ state: 'visible', timeout: budget(this) });
+  } catch (err) {
+    throw friendly({ message: `Asking for a password reset for "${username}" led neither to the confirmation nor to an error.`, cause: err, hint: RESET_HINT });
+  }
+});
+
+/**
+ * Assert the dialog the login form shows after a password reset was asked for.
+ *
+ * Example #1: Then I should see the password reset confirmation
+ * Example #2: Then we should see the password reset confirmation
+ * Example #3: And I should see the password reset confirmation
+ * Example #4: But I should see the password reset confirmation
+ * Example #5: And we should see the password reset confirmation
+ */
+Then(/^(I |we )*should see the password reset confirmation$/, async function (pronounCase) {
+  const dialog = this.page.locator('.modal.email-sent');
+  const error = clean(await this.page.locator('form.login-reset-password .login-errors:not(.hidden)').first().innerText({ timeout: 500 }).catch(() => ''));
+  await assertPresence(dialog, false, {
+    label: 'the password reset confirmation ("Check your email for instructions to reset your password.")',
+    hint: RESET_HINT,
+    timeout: budget(this),
+    found: async () => (error ? `The form shows: ${error}` : ''),
+  });
+});
+
+/**
+ * Open the link of the password reset mail the system sent to an address: the
+ * newest such mail in the mailbox of the test site (`worldParameters.mailUrl`),
+ * sent since the reset was asked for. The mail is removed from the mailbox.
+ *
+ * Example #1: When I open the password reset link sent to "author@example.com"
+ * Example #2: When we open the password reset link sent to "editor@example.com"
+ * Example #3: And I open the password reset link sent to "author@example.com"
+ * Example #4: When I open the password reset link sent to "admin@example.com"
+ * Example #5: Then I open the password reset link sent to "author@example.com"
+ */
+When(/^(I |we )*open the password reset link sent to "([^"]*)"$/, async function (pronounCase, address) {
+  const mail = await mailTo(this, address, { since: this.__resetAskedAt || 0, remove: true });
+  const match = (mail.text + ' ' + mail.html).match(/https?:\/\/[^\s"'<>]*set-password\?[^\s"'<>]+/);
+  if (!match) {
+    throw friendly({ message: `The newest mail to ${address} ("${mail.subject}") holds no password reset link.`, hint: 'The reset mail links to <control panel>/set-password?code=...&id=...' });
+  }
+  await open(this, match[0].replace(/&amp;/g, '&'));
+  try {
+    await this.page.locator('#newPassword').waitFor({ state: 'visible', timeout: budget(this) });
+  } catch (err) {
+    throw friendly({ message: `The password reset link did not open the form for a new password (${clean(await this.page.title())}, ${this.page.url()}).`, cause: err, hint: 'A reset link works once and expires; ask for a new one.' });
+  }
+});
+
+/**
+ * Choose the new password on the screen a password reset link opens. A
+ * password the system accepts leads to the login form; one it refuses keeps
+ * the screen, with the error under the field. A handle of the users registry
+ * stands for the password the registry has for it, so a scenario can give an
+ * account the password it had.
+ *
+ * Example #1: When I choose the new password "Author123456789!"
+ * Example #2: When we choose the new password "a-long-enough-password"
+ * Example #3: When I choose the new password "abc"
+ * Example #4: When I choose the new password of "author"
+ * Example #5: And we choose the new password of "editor"
+ */
+When(/^(I |we )*choose the new password (of )?"([^"]*)"$/, async function (pronounCase, ofCase, value) {
+  const password = ofCase ? resolveUser(this, value).password : value;
+  const field = this.page.locator('#newPassword');
+  if (!(await field.count())) {
+    throw friendly({ message: `This is not the screen for a new password (${this.page.url()}).`, hint: 'Open the link of the reset mail first (I open the password reset link sent to "...").' });
+  }
+  await field.fill(password);
+  await Promise.all([
+    this.page.waitForLoadState('domcontentloaded').catch(() => {}),
+    this.page.locator('form:has(#newPassword) button[type="submit"]').click(),
+  ]);
+  await this.page.locator('form.login-form, #newPassword-errors, #global-sidebar').first().waitFor({ state: 'attached', timeout: budget(this) }).catch(() => {});
+  await settle(this);
+});
+
+/**
+ * Assert the error the screen for a new password shows under its field.
+ *
+ * Example #1: Then I should see the new password error "should contain at least 6 characters"
+ * Example #2: Then we should see the new password error "New Password should contain at least 6 characters."
+ * Example #3: And I should see the new password error "at least 6 characters"
+ * Example #4: Then I should see the new password error "should contain at least"
+ * Example #5: But I should see the new password error "at least 6"
+ */
+Then(/^(I |we )*should see the new password error "([^"]*)"$/, async function (pronounCase, text) {
+  const read = async () => clean(await this.page.locator('#newPassword-errors').first().innerText({ timeout: 500 }).catch(() => '')).replace(/^Error:\s*/, '');
+  const deadline = Date.now() + budget(this);
+  let error = '';
+  for (;;) {
+    error = await read();
+    if (error.includes(text)) return;
+    if (Date.now() > deadline) break;
+    await this.page.waitForTimeout(200);
+  }
+  throw friendly({
+    message: `Expected the new password error "${text}". The screen shows: ${error || 'no error'}${(await loginForm(this).count()) ? ' (the password was accepted: the login form is open)' : ''}.`,
+    hint: 'The error appears under the "Choose a new password" field (`#newPassword-errors`).',
   });
 });

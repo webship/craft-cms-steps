@@ -24,6 +24,8 @@ const {
   CP_HINT,
   cpChrome,
   deniedScreen,
+  missingScreen,
+  chooseFromMenu,
   openCpPage,
   requireCp,
   forgetNotifications,
@@ -55,8 +57,9 @@ async function crumbs(world) {
 /**
  * Open a control panel page by its name (dashboard, entries, categories,
  * assets, users, my account, utilities, system report, settings, sections,
- * entry types, fields, sites, filesystems, user groups, plugins, ...) or by
- * its path after the control panel trigger.
+ * entry types, fields, sites, volumes, filesystems, category groups, tag
+ * groups, user groups, plugins, ...) or by its path after the control panel
+ * trigger. An address the control panel does not know fails the step.
  *
  * Example #1: When I go to the control panel page "entries"
  * Example #2: When I go to the control panel page "settings"
@@ -132,6 +135,75 @@ Then(/^the control panel navigation item "([^"]*)" should be selected$/, async f
     message: `Expected the control panel navigation item "${label}" to be selected. Selected: ${listed(labels)}. The items are: ${listed(all)}.`,
     hint: NAV_HINT,
   }));
+});
+
+/**
+ * Click an item of a sub navigation of the primary navigation: the items a
+ * top-level item unfolds ("Schemas" and "Tokens" under "GraphQL", the pages a
+ * plugin lists under its own item).
+ *
+ * Example #1: When I click "Tokens" under "GraphQL" in the control panel navigation
+ * Example #2: When I click "Schemas" under "GraphQL" in the control panel navigation
+ * Example #3: When we click "Tokens" under "GraphQL" in the control panel navigation
+ * Example #4: And I click "Schemas" under "GraphQL" in the control panel navigation
+ * Example #5: When I click "Orders" under "Commerce" in the control panel navigation
+ */
+When(/^(I |we )*click "([^"]*)" under "([^"]*)" in the control panel navigation$/, async function (pronounCase, label, parent) {
+  await requireCp(this);
+  const item = navItem(this, parent).first();
+  if (!(await item.count())) {
+    throw friendly({ message: `The control panel navigation has no item "${parent}". Its items are: ${listed(await navLabels(this))}.`, hint: NAV_HINT });
+  }
+  const subnav = item.locator(':scope > ul.nav-item__subnav');
+  if (!(await subnav.count())) {
+    throw friendly({ message: `The item "${parent}" of the control panel navigation has no sub navigation.`, hint: 'Only some items unfold (`li.has-subnav`): they show a small button next to their label.' });
+  }
+  if ((await subnav.getAttribute('data-state')) !== 'expanded') {
+    await item.locator(':scope > .nav-item button[aria-controls]').first().click();
+    await this.page.waitForFunction((node) => node.getAttribute('data-state') === 'expanded', await subnav.elementHandle(), { timeout: budget(this) }).catch(() => {});
+  }
+  const links = subnav.locator('a .label');
+  const link = subnav.locator('a').filter({ has: this.page.locator('.label', { hasText: exactly(label) }) }).first();
+  if (!(await link.count())) {
+    throw friendly({ message: `"${parent}" has no item "${label}" in the control panel navigation. It lists: ${listed(await links.allTextContents())}.`, hint: NAV_HINT });
+  }
+  await forgetNotifications(this);
+  await Promise.all([
+    this.page.waitForLoadState('domcontentloaded').catch(() => {}),
+    link.click(),
+  ]);
+  await cpChrome(this).waitFor({ state: 'attached', timeout: budget(this) }).catch(() => {});
+  await settle(this);
+});
+
+/**
+ * Choose another item from the menu of a crumb of the control panel
+ * breadcrumb: the section crumb of an entry lists the other sections, the
+ * group crumb of a category the other groups.
+ *
+ * Example #1: When I choose "Notes" from the menu of the "Blog" crumb
+ * Example #2: When I choose "Pages" from the menu of the "Blog" crumb
+ * Example #3: When we choose "Blog" from the menu of the "Pages" crumb
+ * Example #4: And I choose "Singles" from the menu of the "Blog" crumb
+ * Example #5: When I choose "Notes" from the menu of the "Pages" crumb
+ */
+When(/^(I |we )*choose "([^"]*)" from the menu of the "([^"]*)" crumb$/, async function (pronounCase, item, crumb) {
+  await requireCp(this);
+  const holder = this.page.locator('#crumbs #crumb-list > li.crumb').filter({ has: this.page.locator('a.crumb-link', { hasText: exactly(crumb) }) }).first();
+  if (!(await holder.count())) {
+    throw friendly({ message: `The control panel breadcrumb has no crumb "${crumb}". The trail is: ${(await crumbs(this)).join(' > ') || '(no breadcrumb)'}.`, hint: CRUMB_HINT });
+  }
+  const button = holder.locator('button.menubtn[aria-controls]');
+  if (!(await button.count())) {
+    throw friendly({ message: `The crumb "${crumb}" has no menu.`, hint: 'Only the crumb of a section, a group or a volume has one (the small arrow next to it).' });
+  }
+  await forgetNotifications(this);
+  await Promise.all([
+    this.page.waitForLoadState('domcontentloaded').catch(() => {}),
+    chooseFromMenu(this, button, item, `menu of the "${crumb}" crumb`),
+  ]);
+  await cpChrome(this).waitFor({ state: 'attached', timeout: budget(this) }).catch(() => {});
+  await settle(this);
 });
 
 /**
@@ -243,18 +315,17 @@ Then(/^(I |we )*should not see an error notification$/, async function (pronounC
  * Example #5: And we should see the unauthorized screen with "not authorized"
  */
 Then(/^(I |we )*should see the unauthorized screen(?: with "([^"]*)")?$/, async function (pronounCase, text) {
-  const screen = deniedScreen(this);
+  const screen = this.page.locator('body.message .message-container').first();
   try {
     await screen.waitFor({ state: 'attached', timeout: budget(this) });
   } catch (err) {
     throw friendly({ message: `Expected the "Unauthorized" screen, but the page is ${clean(await this.page.title())} (${this.page.url()}).`, hint: 'The control panel answers a forbidden request with a message screen (`body.message`) headed "Unauthorized".' });
   }
   const found = clean(await screen.textContent());
-  if (!/Unauthorized|Forbidden/.test(found) || (supplied(text) && !found.includes(text))) {
-    throw friendly({ message: `Expected the "Unauthorized" screen${supplied(text) ? ` with "${text}"` : ''}, found the message "${found}".`, hint: 'The message names the reason the request was refused.' });
+  if (!(await deniedScreen(this).count()) || (supplied(text) && !found.includes(text))) {
+    throw friendly({ message: `Expected the "Unauthorized" screen${supplied(text) ? ` with "${text}"` : ''}, found the message "${found}".`, hint: 'The message names the reason the request was refused. An address that does not exist gets "Page Not Found" instead.' });
   }
 });
-
 /**
  * Assert that the signed-in account may, or may not, open a control panel
  * page (by name or path): the step opens it and reads the answer.
@@ -273,12 +344,16 @@ Then(/^(I |we )*should( not)* be allowed to open the control panel page "([^"]*)
   if (await this.page.locator('form.login-form').count()) {
     throw friendly({ message: `Nobody is logged in: the control panel answered ${url} with its login form.`, hint: CP_HINT });
   }
+  // An address that does not exist gets the same kind of screen as a refusal: it proves nothing about the account.
+  if (status === 404 || (await missingScreen(this).count())) {
+    throw friendly({ message: `The control panel has no page "${name}": ${url} answered "Page Not Found" (HTTP ${status}).`, hint: 'Use the name of a page or its path after the control panel trigger, as the address bar shows it for an account that may open it.' });
+  }
   const denied = status === 403 || (await deniedScreen(this).count()) > 0;
   if (notCase && !denied) {
     throw friendly({ message: `Expected the control panel page "${name}" to be refused, but it opened (HTTP ${status}, "${clean(await this.page.title())}").`, hint: 'Check the permissions of the account and of its user groups.' });
   }
   if (!notCase && (denied || status >= 400)) {
-    const message = clean(await deniedScreen(this).textContent().catch(() => ''));
+    const message = clean(await this.page.locator('body.message .message-container').first().textContent().catch(() => ''));
     throw friendly({ message: `Expected the control panel page "${name}" to open, but it was refused (HTTP ${status}${message ? ', "' + message + '"' : ''}).`, hint: 'Check the permissions of the account and of its user groups.' });
   }
 });
