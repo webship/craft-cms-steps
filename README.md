@@ -90,7 +90,7 @@ Feature: Entries
 | `craft-editor.steps.js` | 22 | The edit form: new entries and categories, saving, menus, tabs, stored changes, drafts and revisions, slide-out editors, the preview, the page on the site. |
 | `craft-fields.steps.js` | 25 | Fields by label: text, rich text, lightswitch, dropdown, date, relation fields, uploads, tags, matrix blocks, errors. |
 | `craft-assets.steps.js` | 4 | Uploads to the assets index, the question about a file whose name is taken, thumbnails. |
-| `craft-users.steps.js` | 4 | User groups and permissions of an account: read them, grant and revoke one, where a permission comes from. |
+| `craft-users.steps.js` | 3 | User groups and permissions of an account, and where a permission comes from. |
 | `craft-site.steps.js` | 5 | Published addresses, the pages of a listing, the page of an index item, the `X-Powered-By` header. |
 | `craft-helpers.js` | | Shared plumbing for the files above and for your own steps. It registers no step. |
 
@@ -310,11 +310,10 @@ One example of each step; the JSDoc block above each definition holds five.
 - `I should be on page 2 of the listing`
 - `I visit the page of "Launch day" from the index`
 
-### `craft-users.steps.js` (4)
+### `craft-users.steps.js` (3)
 
 - `the account should be in the "Authors" user group`
 - `the permission "Save entries" under "Section - Blog" should be granted`
-- `I grant the permission "Access the site when the system is off" under "General"`
 - `the permission "View entries" under "Section - Blog" should come from a user group`
 
 ## Testing this package

@@ -1,7 +1,7 @@
 'use strict';
 
 // Users and what they may do: the user groups and the permissions an account
-// screen shows, and granting or revoking a permission there.
+// screen shows, and whether a permission comes from a user group.
 //
 // The suite never creates or deletes accounts: these steps read what the site
 // build set up. What an account may or may not open is asserted with the steps
@@ -12,7 +12,7 @@
 // failure is a friendly error with a hint instead of a raw Playwright timeout
 // stack.
 
-const { When, Then } = require('@cucumber/cucumber');
+const { Then } = require('@cucumber/cucumber');
 const { friendly } = require('webship-js/tests/step-definitions/webship');
 const {
   budget,
@@ -103,37 +103,6 @@ async function permissionBox(world, permission, heading) {
   }
   return { label, box: block.locator(`input[type="checkbox"][id="${await label.getAttribute('for')}"]`).first() };
 }
-
-/**
- * Grant or revoke a permission on the permissions screen of an account or a
- * user group: tick or untick its checkbox. The change is stored when the
- * screen is saved (`I press "Save"`), which the control panel answers with the
- * notification "Permissions saved.". A scenario that changes a permission
- * changes it back.
- *
- * Example #1: When I grant the permission "Access the site when the system is off" under "General"
- * Example #2: When I revoke the permission "Access the site when the system is off" under "General"
- * Example #3: When we grant the permission "View users" under "Users"
- * Example #4: And I revoke the permission "View users" under "Users"
- * Example #5: When I grant the permission "View other users’ entries" under "Section - Blog"
- */
-When(/^(I |we )*(grant|revoke) the permission "([^"]*)" under "([^"]*)"$/, async function (pronounCase, verb, permission, heading) {
-  const { label, box } = await permissionBox(this, permission, heading);
-  const wanted = verb === 'grant';
-  if ((await box.isChecked()) === wanted) return;
-  if (await box.isDisabled()) {
-    const fromGroup = /\bgroup-permission\b/.test((await box.getAttribute('class')) || '');
-    throw friendly({
-      message: fromGroup ? `The permission "${permission}" under "${heading}" comes from a user group of the account: it cannot be changed here.` : `The permission "${permission}" under "${heading}" cannot be changed: the permission it depends on is not granted.`,
-      hint: fromGroup ? 'Change it on the user group (Settings, Users, the group).' : 'A nested permission unlocks when the permission above it is granted: grant that one first.',
-    });
-  }
-  // The checkbox is drawn by its label: a person clicks the label.
-  await label.click();
-  if ((await box.isChecked()) !== wanted) {
-    throw friendly({ message: `The permission "${permission}" under "${heading}" did not change.`, hint: PERMISSIONS_HINT });
-  }
-});
 
 /**
  * Assert that a permission an account has is, or is not, one it gets from a

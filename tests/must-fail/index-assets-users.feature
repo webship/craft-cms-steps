@@ -139,20 +139,6 @@ Feature: Assertions that must fail: the element index, assets and permissions
     And I open the "Permissions" screen of the section navigation
     Then the permission "View users" under "Users" should be granted
 
-  Scenario: The permission comes from the group
-    Fails with: comes from a user group of the account: it cannot be changed here
-    Given I am on the control panel page "users"
-    When I open "Arthur Author" from the index
-    And I open the "Permissions" screen of the section navigation
-    And I revoke the permission "View entries" under "Section - Blog"
-
-  Scenario: The permission depends on another one
-    Fails with: cannot be changed: the permission it depends on is not granted
-    Given I am on the control panel page "users"
-    When I open "Arthur Author" from the index
-    And I open the "Permissions" screen of the section navigation
-    And I grant the permission "Edit users" under "Users"
-
   Scenario: The permission is the account's own
     Fails with: Expected the permission "View users" under "Users" to come from a user group, but it is not granted
     Given I am on the control panel page "users"

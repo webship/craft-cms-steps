@@ -8,7 +8,7 @@
 | `craft-editor.steps.js` | The edit form: a new entry or category, saving, the save and the actions menus, tabs, stored changes, drafts and revisions, slide-out editors, the preview, the page on the site. |
 | `craft-fields.steps.js` | Fields by label: text, rich text, the lightswitch, the dropdown, the date, relation fields and their selection modal, uploads, tags, matrix blocks, errors, the required marker, the characters left. |
 | `craft-assets.steps.js` | Assets: uploads to the assets index, the question the control panel asks about a file whose name is taken, thumbnails. |
-| `craft-users.steps.js` | User groups and permissions of an account screen: reading them, granting and revoking one, and whether a permission comes from a user group. |
+| `craft-users.steps.js` | User groups and permissions of an account screen: reading them, and whether a permission comes from a user group. |
 | `craft-site.steps.js` | The site as visitors get it: published addresses, the pages of a listing, the page of an index item, the header the system signs its answers with. |
 | `craft-helpers.js` | Shared plumbing: the wait budget, background requests, friendly errors, control panel addresses, the users registry, the mailbox of the test site, notifications, menus, the element index, the edit form. It registers no step. |
 
