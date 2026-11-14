@@ -11,13 +11,14 @@ site.
 | --- | --- |
 | `session` | Logging in to and out of the control panel, a wrong password, the email address as the username, a password reset through the mail. |
 | `control-panel` | The primary navigation and its sub navigation, pages by name and by path, the breadcrumb and the menu of a crumb, the heading, the section navigation of the account, a screen that is refused. |
-| `entries` | Create, validate, change, discard changes, disable, delete and restore an entry; save and keep editing. |
+| `entries` | Create, validate, change, discard changes, disable, delete and restore an entry; save and keep editing; the fields and the actions of the form. |
+| `scheduling` | A post date in the future (pending), an expiry date in the past (expired), the status filters, the site. |
 | `drafts-and-revisions` | A draft that stays away from the site until it is applied, revisions, the drafts of the index. |
 | `element-index` | Sources, search, the status filter, sorting by the View menu and by a column heading, showing and hiding a column, the cards view, pagination, the levels of a structure and moving an entry in it, selection, bulk actions and what the selection offers. |
 | `slide-out-editors` | Changing an entry in a slide-out editor, closing it, its errors. |
 | `fields` | Plain text, rich text, the lightswitch, the dropdown, the date, assets, entries, categories, tags and matrix blocks, to the page on the site. |
 | `assets` | The assets index, the thumbnails view, uploading to the index and into a field, a file whose name is taken. |
-| `categories` | The categories index, creating a category, its page on the site. |
+| `categories` | The categories index, the fields of a category, creating a category, its page on the site. |
 | `preview` | The preview next to the edit form, and the link to the page on the site. |
 | `site` | The home page, entry pages, entries that are not live, nested addresses, a paginated listing, the search of the listing. |
 | `accessibility` | The accessibility audit of the pages of the site and of the control panel login. |

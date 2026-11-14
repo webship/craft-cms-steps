@@ -36,6 +36,7 @@ const {
   FORM_HINT,
   waitForEditors,
   formScope,
+  fieldLabels,
   waitForStoredChanges,
   openFormTab,
   chooseFromFormMenu,
@@ -210,6 +211,68 @@ When(/^(I |we )*choose "([^"]*)" from the actions menu of the edit form$/, async
 });
 
 /**
+ * Assert that the actions menu of the edit form (or of the slide-out editor)
+ * offers, or does not offer, an item: what the account may do with the
+ * element decides what the menu lists.
+ *
+ * Example #1: Then the actions menu of the edit form should offer "Delete entry"
+ * Example #2: Then the actions menu of the edit form should not offer "Section settings"
+ * Example #3: Then the actions menu of the edit form should offer "Copy entry"
+ * Example #4: And the actions menu of the edit form should not offer "Entry type settings"
+ * Example #5: Then the actions menu of the edit form should offer "Delete draft"
+ */
+Then(/^the actions menu of the edit form should( not)* offer "([^"]*)"$/, async function (notCase, item) {
+  const scope = await formScope(this);
+  const button = ((await inSlideout(this)) ? scope.locator('.so-toolbar .action-btn, header .action-btn') : this.page.locator('#action-buttons #action-btn, #action-buttons .action-btn')).first();
+  try {
+    await button.waitFor({ state: 'visible', timeout: budget(this) });
+  } catch (err) {
+    throw friendly({ message: 'The form has no actions menu.', cause: err, hint: FORM_HINT });
+  }
+  if ((await button.getAttribute('aria-expanded')) !== 'true') await button.click();
+  const menu = this.page.locator(`[id="${await button.getAttribute('aria-controls')}"]`).first();
+  await menu.waitFor({ state: 'visible', timeout: budget(this) }).catch(() => {});
+  const offered = (await menu.locator('a, button').allInnerTexts()).map(clean).filter(Boolean);
+  await this.page.keyboard.press('Escape').catch(() => {});
+  await menu.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
+  const there = offered.includes(item);
+  if (notCase && there) {
+    throw friendly({ message: `Expected the actions menu of the edit form not to offer "${item}", but it does. It offers: ${listed(offered)}.`, hint: 'The menu lists what the account may do with the element.' });
+  }
+  if (!notCase && !there) {
+    throw friendly({ message: `Expected the actions menu of the edit form to offer "${item}". It offers: ${listed(offered)}.`, hint: 'The menu lists what the account may do with the element; a draft and a saved element offer different items.' });
+  }
+});
+
+/**
+ * Assert that the form in front (the page, the slide-out editor or the
+ * preview) has, or does not have, a field with a label, on any of its tabs:
+ * the field layout and the permissions of the account decide which fields a
+ * form shows.
+ *
+ * Example #1: Then the edit form should have the "Summary" field
+ * Example #2: Then the edit form should not have the "Subtitle" field
+ * Example #3: Then the edit form should have the "Post Date" field
+ * Example #4: And the edit form should have the "Parent" field
+ * Example #5: Then the edit form should not have the "Author" field
+ */
+Then(/^the edit form should( not)* have the "([^"]*)" field$/, async function (notCase, label) {
+  const scope = await formScope(this);
+  await scope.locator('.field').first().waitFor({ state: 'attached', timeout: budget(this) }).catch(() => {});
+  const labels = (await fieldLabels(scope)).map(clean);
+  if (!labels.length) {
+    throw friendly({ message: `This screen has no edit form (${this.page.url()}).`, hint: FORM_HINT });
+  }
+  const there = labels.includes(label);
+  if (notCase && there) {
+    throw friendly({ message: `Expected the edit form not to have the "${label}" field, but it does.`, hint: 'Fields come from the field layout of the entry type, the category group, the volume or the user.' });
+  }
+  if (!notCase && !there) {
+    throw friendly({ message: `Expected the edit form to have the "${label}" field. Its fields are: ${listed(labels)}.`, hint: 'Fields come from the field layout of the entry type, the category group, the volume or the user.' });
+  }
+});
+
+/**
  * Open a tab of the edit form by its label.
  *
  * Example #1: When I open the "Details" tab of the edit form
@@ -332,7 +395,7 @@ When(/^(I |we )*apply the draft$/, async function (pronounCase) {
  * Example #5: Then the edit form should show the "Current" version
  */
 Then(/^the edit form should show the "([^"]*)" version$/, async function (name) {
-  const label = this.page.locator('#context-menu-container > span, #context-btngroup .btn, #context-menu-container .btn').first();
+  const label = this.page.locator('#context-menu-container > span').first();
   await eventually(this, async () => clean(await label.textContent().catch(() => '')), (found) => found === name, (found) => ({
     message: `Expected the edit form to show the "${name}" version, found "${found || '(no version menu)'}".`,
     hint: VERSION_HINT,
@@ -350,7 +413,7 @@ Then(/^the edit form should show the "([^"]*)" version$/, async function (name) 
  * Example #5: And I switch the edit form to the "Revision 2" version
  */
 When(/^(I |we )*switch the edit form to the "([^"]*)" version$/, async function (pronounCase, name) {
-  const button = this.page.locator('#context-menu-container button.menubtn, #context-btn');
+  const button = this.page.locator('#context-menu-container button.menubtn');
   await forgetNotifications(this);
   await Promise.all([
     this.page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {}),

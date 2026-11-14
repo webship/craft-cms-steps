@@ -16,6 +16,15 @@ Feature: Categories
     And "Product" should have the status "Enabled" in the index
     And "Product" should come before "Engineering" in the index
 
+  Scenario: The form of a category has its own fields
+    When I go to the control panel page "categories"
+    And I open "Product" from the index
+    Then the control panel breadcrumb should be "Categories > Topics > Product"
+    And the edit form should have the "Title" field
+    And the edit form should have the "Parent" field
+    And the edit form should not have the "Summary" field
+    And the edit form should show the status "Enabled"
+
   Scenario: Create a category, find it on the site and delete it
     Given there is no category titled "A topic the suite made"
     When I start a new category in the "Topics" group

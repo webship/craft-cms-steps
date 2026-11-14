@@ -239,6 +239,12 @@ When(/^(I |we )*choose "([^"]*)" in the "([^"]*)" dropdown$/, async function (pr
   const field = await requireField(this, label);
   const selectize = field.locator('.selectize-control').first();
   if (await selectize.count()) {
+    // Opening the list marks the field as changed, and the form stores that: ask the list for its options first, so
+    // an option it does not have leaves the form untouched.
+    const known = await field.locator('select.selectized').first().evaluate((node) => (node.selectize ? Object.values(node.selectize.options).map((item) => String(item.text).replace(/\s+/g, ' ').trim()) : null)).catch(() => null);
+    if (known && !known.includes(option)) {
+      throw friendly({ message: `The "${label}" dropdown has no option "${option}". It offers: ${listed(known)}.`, hint: 'Use the label of an option as the dropdown shows it.' });
+    }
     await selectize.locator('.selectize-input').click();
     const options = this.page.locator('.selectize-dropdown:visible .option');
     const target = options.filter({ hasText: exactly(option) }).first();
@@ -482,11 +488,15 @@ When(/^(I |we )*add the tag "([^"]*)" to the "([^"]*)" field$/, async function (
   if (!(await control.count())) {
     throw friendly({ message: `The "${label}" field is not a tags field.`, hint: 'A tags field is `.elementselect.tagselect` with a text input to add tags.' });
   }
+  if ((await relationLabels(control)).includes(tag)) {
+    throw friendly({ message: `The "${label}" field already holds the tag "${tag}".`, hint: 'The menu of the field shows a tag it holds as disabled ("Existing Tag"): it cannot be added twice.' });
+  }
   const input = control.locator('input[type="text"]').first();
   await input.click();
   await input.pressSequentially(tag, { delay: 20 });
   // The field looks the tag up and offers it (or offers to create it) in a menu.
-  const option = this.page.locator('.tagselect-menu:visible li, .menu.tagmenu:visible li, .menu:visible li').filter({ hasText: exactly(tag) }).first();
+  // The menu offers the tag as an existing one or as one to create (`li[aria-label="Existing Tag: ..."]`, `"Create Tag: ..."`).
+  const option = this.page.locator('.menu.tagmenu:visible li[role="option"]').filter({ hasText: exactly(tag) }).first();
   await option.waitFor({ state: 'visible', timeout: budget(this) }).catch(() => {});
   if (await option.count()) await option.click();
   else await input.press('Enter');

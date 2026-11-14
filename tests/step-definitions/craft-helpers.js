@@ -166,7 +166,14 @@ async function afterRequests(world, fn) {
 /** Open a URL and wait for the page to settle. */
 async function open(world, url) {
   requests(world);
-  await gotoUrl(world.page, url);
+  try {
+    await gotoUrl(world.page, url);
+  } catch (err) {
+    // A network interface that comes or goes on the machine (a container starting next door) aborts the navigation once: go again.
+    if (!/ERR_NETWORK_CHANGED/.test(String(err && err.message))) throw err;
+    await world.page.waitForTimeout(500);
+    await gotoUrl(world.page, url);
+  }
   await world.page.waitForSelector('body', { state: 'attached', timeout: budget(world) });
   await world.page.waitForLoadState('load', { timeout: budget(world) }).catch(() => {});
   await settle(world);
