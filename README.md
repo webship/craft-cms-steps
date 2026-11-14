@@ -87,7 +87,7 @@ Feature: Entries
 | `craft-session.steps.js` | 12 | Login by a handle of the users registry or by credentials, logout, who is signed in, the login form and its errors, a password reset through the mail. |
 | `craft-cp.steps.js` | 15 | Control panel pages by name, the primary navigation and its sub navigation, the breadcrumb and the menu of a crumb, the heading, notifications, the "Unauthorized" screen, the section navigation, the system name. |
 | `craft-index.steps.js` | 28 | The element index: sources, search, the status filter, sorting (the View menu and the column headings), columns, views, pagination, items, statuses, the levels of a structure and moving an item in it, selection, bulk actions and what the selection offers, cleanup by title. |
-| `craft-editor.steps.js` | 22 | The edit form: new entries and categories, saving, menus, tabs, stored changes, drafts and revisions, slide-out editors, the preview, the page on the site. |
+| `craft-editor.steps.js` | 24 | The edit form: new entries and categories, saving, menus and what the actions menu offers, tabs, the fields a form has, stored changes, drafts and revisions, slide-out editors, the preview, the page on the site. |
 | `craft-fields.steps.js` | 25 | Fields by label: text, rich text, lightswitch, dropdown, date, relation fields, uploads, tags, matrix blocks, errors. |
 | `craft-assets.steps.js` | 4 | Uploads to the assets index, the question about a file whose name is taken, thumbnails. |
 | `craft-site.steps.js` | 5 | Published addresses, the pages of a listing, the page of an index item, the `X-Powered-By` header. |
@@ -201,13 +201,15 @@ One example of each step; the JSDoc block above each definition holds five.
 - `I open the "Passkeys" screen of the section navigation`
 - `the control panel system name should be "Webship Test Site"`
 
-### `craft-editor.steps.js` (22)
+### `craft-editor.steps.js` (24)
 
 - `I start a new entry in the "Blog" section`
 - `I save the edit form`
 - `the save button of the edit form should read "Create entry"`
 - `I choose "Save and continue editing" from the save menu of the edit form`
 - `I choose "Delete entry" from the actions menu of the edit form`
+- `the actions menu of the edit form should offer "Delete entry"`
+- `the edit form should have the "Summary" field`
 - `I open the "Details" tab of the edit form`
 - `I wait for the edit form to store my changes`
 - `I should see the unsaved changes notice`
@@ -330,6 +332,24 @@ cannot fail proves nothing.
 
 The suite leaves the site as it found it: content a scenario creates is removed
 (trash included), content of the site build a scenario changes is changed back.
+One thing stays: a tag. Typing a new tag into a tags field creates it at once,
+and the control panel has no screen to delete a tag, so the tag "a tag the
+suite made" of the fields feature remains in its tag group after the first run.
+
+## How the steps were written
+
+Every screen a step touches was opened in a real browser first, and the step
+was written from what is there: the roles and names of the accessibility tree,
+the stable attributes, what the screen does while it loads or saves, the exact
+messages. The steps are proven on the free edition of Craft CMS 5.12 in US
+English with Chromium.
+
+Not covered: everything of the paid editions (further accounts, user groups,
+permissions), globals, several sites, the prompt for the password before a
+sensitive change, inline editing and the export of an index, the cards and
+index views of a matrix field, nested entries inside rich text, asset folders,
+the image editor, and logging in on the site itself. Tags have no screen of
+their own in the control panel: they are added and removed in a tags field.
 
 ## License
 

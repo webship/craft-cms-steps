@@ -125,3 +125,16 @@ Feature: Entries
     When I fill in the "Subtitle" field with "Get in touch"
     And I save the edit form
     Then I should see the notification "Entry saved."
+
+  Scenario: The edit form has the fields and the actions of its entry
+    When I go to the control panel page "content/entries/blog"
+    And I open "Launch day" from the index
+    Then the edit form should have the "Summary" field
+    And the edit form should have the "Related pages" field
+    And the edit form should have the "Post Date" field
+    And the edit form should not have the "Subtitle" field
+    And the edit form should not have the "Author" field
+    And the actions menu of the edit form should offer "Section settings"
+    And the actions menu of the edit form should offer "Entry type settings"
+    And the actions menu of the edit form should offer "Delete entry"
+    And the actions menu of the edit form should not offer "Delete draft"
