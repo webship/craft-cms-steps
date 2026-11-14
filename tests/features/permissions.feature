@@ -71,6 +71,24 @@ Feature: What an account may do
     And the permission "View users" under "Users" should not be granted
     And the permission "View assets" under "Volume - Images" should be granted
     And the permission "Delete assets" under "Volume - Images" should not be granted
+    And the permission "View entries" under "Section - Blog" should come from a user group
+    And the permission "View users" under "Users" should not come from a user group
+
+  Scenario: An admin grants a permission to an account and takes it back
+    Given I am logged in to the control panel as "admin"
+    And I am on the control panel page "users"
+    When I open "Arthur Author" from the index
+    And I open the "Permissions" screen of the section navigation
+    Then the permission "Access the site when the system is off" under "General" should not be granted
+    When I grant the permission "Access the site when the system is off" under "General"
+    And I press "Save"
+    Then I should see the notification "Permissions saved."
+    And the permission "Access the site when the system is off" under "General" should be granted
+    And the permission "Access the site when the system is off" under "General" should not come from a user group
+    When I revoke the permission "Access the site when the system is off" under "General"
+    And I press "Save"
+    Then I should see the notification "Permissions saved."
+    And the permission "Access the site when the system is off" under "General" should not be granted
 
   Scenario: The users index lists the accounts by group
     Given I am logged in to the control panel as "admin"

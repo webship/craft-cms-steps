@@ -1,7 +1,7 @@
 'use strict';
 
 // Users and what they may do: the user groups and the permissions an account
-// screen shows, and files uploaded to the assets index.
+// screen shows, and granting or revoking a permission there.
 //
 // The suite never creates or deletes accounts: these steps read what the site
 // build set up. What an account may or may not open is asserted with the steps
@@ -12,8 +12,6 @@
 // failure is a friendly error with a hint instead of a raw Playwright timeout
 // stack.
 
-const path = require('path');
-const fs = require('fs');
 const { When, Then } = require('@cucumber/cucumber');
 const { friendly } = require('webship-js/tests/step-definitions/webship');
 const {
@@ -21,14 +19,7 @@ const {
   exactly,
   clean,
   listed,
-  settle,
-  eventually,
   requireCp,
-  forgetNotifications,
-  indexScope,
-  waitForIndex,
-  indexCount,
-  requireIndexItem,
 } = require('./craft-helpers');
 
 const PERMISSIONS_HINT = 'Open the "Permissions" screen of a user account first (Users, the account, then "Permissions" in the section navigation), or the screen of a user group. Permissions are grouped under headings such as "General" or "Section - Blog".';
@@ -94,55 +85,73 @@ Then(/^the permission "([^"]*)" under "([^"]*)" should( not)* be granted$/, asyn
 });
 
 /**
- * Upload a file to the assets index with its "Upload files" button: the file
- * lands in the volume and the folder the index shows.
- *
- * Example #1: When I upload the file "tests/fixtures/pixel.png" to the assets index
- * Example #2: When we upload the file "tests/fixtures/pixel.png" to the assets index
- * Example #3: And I upload the file "tests/fixtures/photo.jpg" to the assets index
- * Example #4: When I upload the file "tests/fixtures/report.pdf" to the assets index
- * Example #5: And we upload the file "tests/fixtures/logo.png" to the assets index
+ * The checkbox of a permission and what the screen offers instead, for the
+ * error messages.
  */
-When(/^(I |we )*upload the file "([^"]*)" to the assets index$/, async function (pronounCase, file) {
-  const resolved = path.resolve(process.cwd(), file);
-  if (!fs.existsSync(resolved)) {
-    throw friendly({ message: `The file "${file}" does not exist (${resolved}).`, hint: 'Give the path from the folder cucumber-js runs in, for example "tests/fixtures/pixel.png".' });
+async function permissionBox(world, permission, heading) {
+  await requireCp(world);
+  await world.page.locator('.user-permissions').first().waitFor({ state: 'attached', timeout: budget(world) }).catch(() => {});
+  const block = permissionBlock(world, heading);
+  if (!(await block.count())) {
+    const headings = (await world.page.locator('.user-permissions h3').allTextContents()).map(clean);
+    throw friendly({ message: headings.length ? `The permissions screen has no heading "${heading}". Its headings are: ${listed(headings)}.` : `This screen shows no permissions (${world.page.url()}).`, hint: PERMISSIONS_HINT });
   }
-  const scope = await indexScope(this);
-  await waitForIndex(this, scope);
-  const input = this.page.locator('#action-buttons input[type="file"], input[name="assets-upload"]').first();
-  if (!(await input.count())) {
-    throw friendly({ message: 'This screen has no "Upload files" button.', hint: 'Open the assets index on a volume the account may save assets in.' });
+  const labels = block.locator('label');
+  const label = labels.filter({ hasText: exactly(permission) }).first();
+  if (!(await label.count())) {
+    throw friendly({ message: `There is no permission "${permission}" under "${heading}". Its permissions are: ${listed(await labels.allTextContents())}.`, hint: 'Use the label of the permission as the screen shows it.' });
   }
-  const before = await indexCount(this, scope);
-  await forgetNotifications(this);
-  await input.setInputFiles(resolved);
-  await eventually(this, () => indexCount(this, scope), (found) => found.total > before.total, (found) => ({
-    message: `The file "${file}" did not show in the assets index (it holds ${found.total} assets, as before).`,
-    hint: 'The volume may not allow this kind of file, or the account may not save assets in it.',
-  }));
-  await waitForIndex(this, scope);
-  await settle(this);
+  return { label, box: block.locator(`input[type="checkbox"][id="${await label.getAttribute('for')}"]`).first() };
+}
+
+/**
+ * Grant or revoke a permission on the permissions screen of an account or a
+ * user group: tick or untick its checkbox. The change is stored when the
+ * screen is saved (`I press "Save"`), which the control panel answers with the
+ * notification "Permissions saved.". A scenario that changes a permission
+ * changes it back.
+ *
+ * Example #1: When I grant the permission "Access the site when the system is off" under "General"
+ * Example #2: When I revoke the permission "Access the site when the system is off" under "General"
+ * Example #3: When we grant the permission "View users" under "Users"
+ * Example #4: And I revoke the permission "View users" under "Users"
+ * Example #5: When I grant the permission "View other users’ entries" under "Section - Blog"
+ */
+When(/^(I |we )*(grant|revoke) the permission "([^"]*)" under "([^"]*)"$/, async function (pronounCase, verb, permission, heading) {
+  const { label, box } = await permissionBox(this, permission, heading);
+  const wanted = verb === 'grant';
+  if ((await box.isChecked()) === wanted) return;
+  if (await box.isDisabled()) {
+    const fromGroup = /\bgroup-permission\b/.test((await box.getAttribute('class')) || '');
+    throw friendly({
+      message: fromGroup ? `The permission "${permission}" under "${heading}" comes from a user group of the account: it cannot be changed here.` : `The permission "${permission}" under "${heading}" cannot be changed: the permission it depends on is not granted.`,
+      hint: fromGroup ? 'Change it on the user group (Settings, Users, the group).' : 'A nested permission unlocks when the permission above it is granted: grant that one first.',
+    });
+  }
+  // The checkbox is drawn by its label: a person clicks the label.
+  await label.click();
+  if ((await box.isChecked()) !== wanted) {
+    throw friendly({ message: `The permission "${permission}" under "${heading}" did not change.`, hint: PERMISSIONS_HINT });
+  }
 });
 
 /**
- * Assert that an item of the index shows a thumbnail that loaded: for an
- * image asset, the transform of the image the system generated.
+ * Assert that a permission an account has is, or is not, one it gets from a
+ * user group: the screen shows such a permission ticked and locked.
  *
- * Example #1: Then "Harbour" should show a thumbnail in the index
- * Example #2: Then "Meadow" should show a thumbnail in the index
- * Example #3: Then "Pixel" should show a thumbnail in the index
- * Example #4: And "Harbour" should show a thumbnail in the index
- * Example #5: And "Meadow" should show a thumbnail in the index
+ * Example #1: Then the permission "View entries" under "Section - Blog" should come from a user group
+ * Example #2: Then the permission "Access the control panel" under "General" should come from a user group
+ * Example #3: Then the permission "View assets" under "Volume - Images" should come from a user group
+ * Example #4: And the permission "Save entries" under "Section - Blog" should come from a user group
+ * Example #5: Then the permission "View users" under "Users" should not come from a user group
  */
-Then(/^"([^"]*)" should show a thumbnail in the index$/, async function (title) {
-  const scope = await indexScope(this);
-  await waitForIndex(this, scope);
-  const item = await requireIndexItem(this, scope, title);
-  await item.scrollIntoViewIfNeeded().catch(() => {});
-  const read = async () => item.locator('.thumb img, .elementthumb img').first().evaluate((image) => ({ src: image.currentSrc || image.src || '', loaded: image.complete && image.naturalWidth > 0 })).catch(() => null);
-  await eventually(this, read, (found) => Boolean(found) && found.loaded, (found) => ({
-    message: found ? `The thumbnail of "${title}" did not load (${found.src || 'no address'}).` : `"${title}" shows no thumbnail in the index.`,
-    hint: 'Thumbnails are generated image transforms: check that the filesystem of the volume has public URLs and that the image library of the server works.',
-  }));
+Then(/^the permission "([^"]*)" under "([^"]*)" should( not)* come from a user group$/, async function (permission, heading, notCase) {
+  const { box } = await permissionBox(this, permission, heading);
+  const fromGroup = (await box.isChecked()) && /\bgroup-permission\b/.test((await box.getAttribute('class')) || '');
+  if (fromGroup === Boolean(notCase)) {
+    throw friendly({
+      message: notCase ? `Expected the permission "${permission}" under "${heading}" not to come from a user group, but it does.` : `Expected the permission "${permission}" under "${heading}" to come from a user group, but it ${(await box.isChecked()) ? 'is granted to the account itself' : 'is not granted'}.`,
+      hint: 'A permission of a user group shows ticked and locked on the permissions screen of an account (`input.group-permission`).',
+    });
+  }
 });

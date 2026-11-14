@@ -574,7 +574,10 @@ async function chooseFromMenu(world, button, item, what) {
 // The element index
 // ---------------------------------------------------------------------------
 
-const INDEX_HINT = 'Open an index first (Entries, Categories, Assets or Users), or the selection modal of a relation field. The index is `.element-index` with its items in `.elements`.';
+const INDEX_HINT = 'Open an index first (Entries, Categories, Assets or Users), or the selection modal of a relation field. The index is `.element-index` with its items in `div.elements`.';
+
+// The list of an index. A relation field of an edit form is a `ul.elements` too, so the list is the `div`.
+const LIST = 'div.elements';
 
 /**
  * The element index a step acts on: the one of the selection modal when one is
@@ -585,7 +588,8 @@ const INDEX_HINT = 'Open an index first (Entries, Categories, Assets or Users), 
 async function indexScope(world) {
   const modal = world.page.locator('.modal.elementselectormodal:visible').last();
   if (await modal.count()) return modal;
-  const page = world.page.locator('#main-content:has(.elements), #main:has(.elements)').first();
+  // An edit form holds `.elements` as well (the chips of its relation fields): only `.element-index` is an index.
+  const page = world.page.locator('#main-content:has(.element-index), #main:has(.element-index)').first();
   try {
     await page.waitFor({ state: 'attached', timeout: budget(world) });
   } catch (err) {
@@ -594,13 +598,23 @@ async function indexScope(world) {
   return page;
 }
 
-/** Wait until the index finished loading its items (`.elements.busy` is gone). */
+/**
+ * Wait until the index finished loading: its list is not `busy`, no column is
+ * `loading` (a sort by a column header), and the count of the footer is in
+ * (it arrives after the items, behind `#count-spinner`).
+ */
 async function waitForIndex(world, scope) {
   const index = scope || (await indexScope(world));
   await world.page.waitForFunction((root) => {
-    const elements = root.querySelector('.elements');
+    const elements = root.querySelector('div.elements');
     if (!elements || elements.classList.contains('busy')) return false;
-    return !!elements.querySelector('table, .card-grid, ul, .zilch, p');
+    if (elements.querySelector('thead th.loading')) return false;
+    const spinner = root.querySelector('#count-spinner');
+    if (spinner && !spinner.classList.contains('hidden')) return false;
+    // Each source has a "View" button of its own: while the index swaps them, none of them shows.
+    const views = [...root.querySelectorAll('button[aria-label="View settings"]')];
+    if (views.length && views.filter((button) => !button.classList.contains('hidden')).length !== 1) return false;
+    return !!elements.querySelector('table, .card-grid, .thumbsview, .zilch, p');
   }, await index.elementHandle(), { timeout: budget(world) }).catch(() => {});
 }
 
@@ -616,9 +630,13 @@ async function reloadingIndex(world, scope, fn) {
   await waitForIndex(world, scope);
 }
 
-/** The items of the index: table rows or cards. */
+/**
+ * The items of the index: the rows of the table view (a structure is a table
+ * too, its rows carry `data-level`), the cards, or the thumbnails. The copy of
+ * a row that follows the pointer while it is dragged is not an item.
+ */
 function indexItems(scope) {
-  return scope.locator('.elements tbody tr[data-id], .elements .card-grid > li[data-id], .elements ul.structure li[data-id]');
+  return scope.locator(`${LIST} tbody tr[data-id]:not(.draghelper), ${LIST} .card-grid > li[data-id], ${LIST} .thumbsview > li[data-id]`);
 }
 
 /** The titles of the items the index shows, in order. */
@@ -632,7 +650,7 @@ async function indexTitles(scope) {
 /** The item of the index with a title (the label of its chip or card). */
 function indexItem(scope, title) {
   const label = `[data-label=${quoted(title)}]`;
-  return scope.locator(`.elements tbody tr[data-id]:has(th ${label}), .elements .card-grid > li[data-id]:has(.element${label}), .elements ul.structure li[data-id]:has(.element${label})`);
+  return scope.locator(`${LIST} tbody tr[data-id]:not(.draghelper):has(th ${label}), ${LIST} .card-grid > li[data-id]:has(.element${label}), ${LIST} .thumbsview > li[data-id]:has(.element${label})`);
 }
 
 /** The item with a title, or a friendly error listing what the index shows. */
@@ -871,6 +889,7 @@ module.exports = {
   chooseFromOpenMenu,
   chooseFromMenu,
   INDEX_HINT,
+  LIST,
   indexScope,
   waitForIndex,
   reloadingIndex,
