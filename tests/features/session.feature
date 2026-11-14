@@ -19,14 +19,13 @@ Feature: The control panel session
     Then I should see the login error "Invalid username or password."
     And I should not be logged in to the control panel
 
-  Scenario: An account without access to the control panel is refused
-    When I log in to the control panel with the username "member" and the password "Member123456789!"
-    Then I should see the login error "You cannot access the control panel with that account."
+  Scenario: A username nobody has is refused the same way
+    When I log in to the control panel with the username "nobody-with-that-name" and the password "not-the-password"
+    Then I should see the login error "Invalid username or password."
 
-  Scenario: Logging in as somebody else replaces the session
-    Given I am logged in to the control panel as "editor"
-    When I log in to the control panel as "author"
-    Then I should be logged in to the control panel as "author"
+  Scenario: The email address logs in too
+    When I log in to the control panel with the username "admin@example.com" and the password "Admin123456789!"
+    Then I should be logged in to the control panel as "admin"
 
   Scenario: A visitor is sent to the login form
     Given I am an anonymous user
@@ -44,13 +43,13 @@ Feature: The control panel session
     And I should see "Check your email for instructions to reset your password."
 
   Scenario: An account resets its password through the mail
-    When I ask for a password reset for "author"
+    When I ask for a password reset for "admin"
     Then I should see the password reset confirmation
-    When I open the password reset link sent to "author@example.com"
+    When I open the password reset link sent to "admin@example.com"
     Then I should see "Choose a new password"
     When I choose the new password "abc"
     Then I should see the new password error "should contain at least 6 characters"
-    When I choose the new password of "author"
+    When I choose the new password of "admin"
     Then I should see the control panel login form
-    When I log in to the control panel as "author"
-    Then I should be logged in to the control panel as "author"
+    When I log in to the control panel as "admin"
+    Then I should be logged in to the control panel as "admin"

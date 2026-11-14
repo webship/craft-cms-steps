@@ -5,7 +5,7 @@ Feature: The element index
   So that I manage the content without opening each entry
 
   Background:
-    Given I am logged in to the control panel as "editor"
+    Given I am logged in to the control panel as "admin"
     And I am on the control panel page "entries"
 
   @critical
@@ -57,8 +57,7 @@ Feature: The element index
   Scenario: The columns of the table show the attributes of an entry
     When I open the "Blog" source of the index
     Then "Launch day" should show "1/31/2026" in the "Post Date" column of the index
-    And "Launch day" should show "Ada Admin" in the "Authors" column of the index
-    And "Notes from the author" should show "Arthur Author" in the "Authors" column of the index
+    And "Launch day" should show "Live" in the "Status" column of the index
 
   Scenario: The index shows as cards
     When I open the "Blog" source of the index

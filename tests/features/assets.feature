@@ -1,11 +1,11 @@
 @assets
 Feature: Assets
-  As an editor
+  As the person who runs the site
   I want to upload files and use them in entries
   So that articles carry their images
 
   Background:
-    Given I am logged in to the control panel as "editor"
+    Given I am logged in to the control panel as "admin"
 
   @critical
   Scenario: The assets index lists the files of a volume
@@ -47,8 +47,7 @@ Feature: Assets
     Then "Harbour" should show "harbour.png" in the "Filename" column of the index
 
   Scenario: A file whose name is taken asks what to do
-    Given I log in to the control panel as "admin"
-    And there is no asset titled "Pixel"
+    Given there is no asset titled "Pixel"
     When I go to the control panel page "assets"
     And I upload the file "tests/fixtures/pixel.png" to the assets index
     Then the index should hold 3 items
@@ -70,16 +69,6 @@ Feature: Assets
     Then the index should hold 4 items
     And there is no asset titled "Pixel"
 
-  Scenario: An editor may not replace a file
-    Given there is no asset titled "Pixel"
-    When I go to the control panel page "assets"
-    And I upload the file "tests/fixtures/pixel.png" to the assets index
-    And I go to the control panel page "assets"
-    And I upload the file "tests/fixtures/pixel.png" to the assets index
-    And I answer the file conflict with "Replace it"
-    Then I should see the error notification "User is not authorized to perform this action."
-    And there is no asset titled "Pixel"
-
   Scenario: Upload a file straight into a field
     Given there is no asset titled "Pixel"
     When I go to the control panel page "content/entries/blog"
@@ -89,9 +78,3 @@ Feature: Assets
     When I discard the unsaved changes
     Then the "Hero image" field should not hold "Pixel"
     And there is no asset titled "Pixel"
-
-  Scenario: An author may upload but sees no action to delete
-    Given I log in to the control panel as "author"
-    When I go to the control panel page "assets"
-    Then I should see the "Images" source in the index
-    And the index should hold 0 items

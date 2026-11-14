@@ -1,6 +1,6 @@
 'use strict';
 
-// The element index: the list screen of entries, categories, assets and users,
+// The element index: the list screen of entries, categories and assets,
 // and the same list inside the selection modal of a relation field. Sources,
 // search, the status filter, sorting, the view mode, pagination, the items and
 // their status, selection and the bulk actions (set status, duplicate, delete,
@@ -127,7 +127,7 @@ async function chooseSelectionAction(world, scope, action) {
 
 /**
  * Open a source of the index: an item of its sidebar, such as a section, a
- * category group, a volume or a user group.
+ * category group or a volume.
  *
  * Example #1: When I open the "Blog" source of the index
  * Example #2: When I open the "All entries" source of the index
@@ -168,7 +168,7 @@ Then(/^(I |we )*should( not)* see the "([^"]*)" source in the index$/, async fun
  * Example #2: Then the "All entries" source of the index should be selected
  * Example #3: Then the "Topics" source of the index should be selected
  * Example #4: And the "Images" source of the index should be selected
- * Example #5: Then the "All users" source of the index should be selected
+ * Example #5: Then the "Images" source of the index should be selected
  */
 Then(/^the "([^"]*)" source of the index should be selected$/, async function (name) {
   const scope = await indexScope(this);
@@ -231,7 +231,7 @@ When(/^(I |we )*clear the search of the index$/, async function (pronounCase) {
 
 /**
  * Filter the index by a status of its status menu: All, Live, Pending, Expired,
- * Disabled, Enabled, Active, Drafts, Trashed, ...
+ * Disabled, Enabled, Drafts, Trashed, ...
  *
  * Example #1: When I filter the index by the "Disabled" status
  * Example #2: When I filter the index by the "Trashed" status
@@ -244,7 +244,7 @@ When(/^(I |we )*filter the index by the "([^"]*)" status$/, async function (pron
   await waitForIndex(this, scope);
   const button = toolbar(scope).locator('.statusmenubtn').first();
   if (!(await button.count())) {
-    throw friendly({ message: 'The index has no status menu.', hint: 'Indexes of elements with statuses (entries, categories, users) have a status menu at the start of the toolbar.' });
+    throw friendly({ message: 'The index has no status menu.', hint: 'Indexes of elements with statuses (entries, categories, assets) have a status menu at the start of the toolbar.' });
   }
   if (clean(await button.innerText()) === status) return;
   await reloadingIndex(this, scope, () => chooseFromMenu(this, button, status, 'status menu of the index'));
@@ -313,7 +313,7 @@ When(/^(I |we )*switch the index to the "(table|cards|structure|thumbs)" view$/,
  * Example #2: Then I should not see "Unfinished thoughts" in the index
  * Example #3: Then we should see "Harbour" in the index
  * Example #4: And I should not see "Roadmap update" in the index
- * Example #5: Then I should see "Arthur Author" in the index
+ * Example #5: Then I should see "Product" in the index
  */
 Then(/^(I |we )*should( not)* see "([^"]*)" in the index$/, async function (pronounCase, notCase, title) {
   const scope = await indexScope(this);
@@ -394,11 +394,11 @@ When(/^(I |we )*go to the (next|previous) page of the index$/, async function (p
 
 /**
  * Assert the status of an item of the index: Live, Pending, Expired, Disabled,
- * Draft, Enabled, Active, Inactive, Suspended, ...
+ * Draft, Enabled, ...
  *
  * Example #1: Then "Launch day" should have the status "Live" in the index
  * Example #2: Then "Unfinished thoughts" should have the status "Disabled" in the index
- * Example #3: Then "Arthur Author" should have the status "Active" in the index
+ * Example #3: Then "Product" should have the status "Enabled" in the index
  * Example #4: And "Product" should have the status "Enabled" in the index
  * Example #5: Then "A scheduled article" should have the status "Pending" in the index
  */
@@ -418,9 +418,9 @@ Then(/^"([^"]*)" should have the status "([^"]*)" in the index$/, async function
  * heading of the column.
  *
  * Example #1: Then "Harbour" should show "harbour.png" in the "Filename" column of the index
- * Example #2: Then "Launch day" should show "Ada Admin" in the "Authors" column of the index
+ * Example #2: Then "Launch day" should show "Live" in the "Status" column of the index
  * Example #3: Then "Launch day" should show "1/31/2026" in the "Post Date" column of the index
- * Example #4: And "Arthur Author" should show "author@example.com" in the "Email" column of the index
+ * Example #4: And "Meadow" should show "meadow.png" in the "Filename" column of the index
  * Example #5: Then "About" should show "about" in the "Slug" column of the index
  */
 Then(/^"([^"]*)" should show "([^"]*)" in the "([^"]*)" column of the index$/, async function (title, value, column) {
@@ -761,7 +761,7 @@ Then(/^the selected items should( not)* offer the action "([^"]*)"$/, async func
  * Example #1: When I open "Launch day" from the index
  * Example #2: When I open "About" from the index
  * Example #3: When we open "Harbour" from the index
- * Example #4: And I open "Arthur Author" from the index
+ * Example #4: And I open "Product" from the index
  * Example #5: When I open "Product" from the index
  */
 When(/^(I |we )*open "([^"]*)" from the index$/, async function (pronounCase, title) {

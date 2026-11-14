@@ -19,11 +19,11 @@ Feature: The control panel navigation
     And I should see "Entries" in the control panel navigation
     And I should see "Categories" in the control panel navigation
     And I should see "Assets" in the control panel navigation
-    And I should see "Users" in the control panel navigation
     And I should see "Utilities" in the control panel navigation
     And I should see "Settings" in the control panel navigation
     And I should see "GraphQL" in the control panel navigation
     And I should not see "Globals" in the control panel navigation
+    And I should not see "Users" in the control panel navigation
     And I should not see "Tags" in the control panel navigation
 
   Scenario: An item of the navigation unfolds its own pages
@@ -50,7 +50,6 @@ Feature: The control panel navigation
       | dashboard       | Dashboard          |
       | categories      | Categories         |
       | assets          | Assets             |
-      | users           | Users              |
       | my account      | My Account         |
       | system report   | System Report      |
       | settings        | Settings           |
@@ -62,7 +61,7 @@ Feature: The control panel navigation
       | filesystems     | Asset Settings     |
       | category groups | Category Groups    |
       | tag groups      | Tag Groups         |
-      | user groups     | User Settings      |
+      | user fields     | User Settings      |
       | user settings   | User Settings      |
       | plugins         | Plugins            |
 
@@ -88,10 +87,19 @@ Feature: The control panel navigation
     Then the control panel heading should be "Entries"
     And the "Pages" source of the index should be selected
 
-  Scenario: The section navigation of an account
-    Given I am on the control panel page "users"
-    When I open "Arthur Author" from the index
-    Then the control panel breadcrumb should be "Users > Arthur Author"
-    When I open the "Permissions" screen of the section navigation
-    Then the account should be in the "Authors" user group
-    And the account should not be in the "Editors" user group
+  Scenario: The section navigation of the account
+    Given I am on the control panel page "my account"
+    Then the control panel heading should be "My Account"
+    And the "Username" field should have the value "admin"
+    When I open the "Preferences" screen of the section navigation
+    Then I should see "Language"
+    When I open the "Password & Verification" screen of the section navigation
+    Then I should see "Password"
+
+  Scenario: A screen the edition does not have is refused
+    When I go to the control panel page "globals"
+    Then I should see the unauthorized screen
+    And I should see the unauthorized screen with "User not permitted to edit any global content"
+    And I should not be allowed to open the control panel page "globals"
+    And I should be allowed to open the control panel page "entries"
+    And I should be allowed to open the control panel page "settings"

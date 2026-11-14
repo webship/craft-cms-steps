@@ -49,15 +49,9 @@ module.exports = {
       // test data: the site build creates them once (site/seed.php, run by .github/scripts/build-ddev-site.sh) and
       // a feature never creates or deletes users. Point the suite at another site with the *_USER and *_PASSWORD
       // variables.
-      //   admin   an admin account          everything
-      //   editor  the "Editors" user group  all entries, categories and assets; no users, no settings
-      //   author  the "Authors" user group  its own entries in the Blog section, the Images volume
-      //   member  no group                  an account that may not open the control panel
+      // The test site runs the free edition, which has one account: the admin the installer made.
       users: {
         admin: { username: process.env.ADMIN_USER || 'admin', password: process.env.ADMIN_PASSWORD || 'Admin123456789!' },
-        editor: { username: process.env.EDITOR_USER || 'editor', password: process.env.EDITOR_PASSWORD || 'Editor123456789!' },
-        author: { username: process.env.AUTHOR_USER || 'author', password: process.env.AUTHOR_PASSWORD || 'Author123456789!' },
-        member: { username: process.env.MEMBER_USER || 'member', password: process.env.MEMBER_PASSWORD || 'Member123456789!' },
       },
       minWaitTime: {
         page: 3000,

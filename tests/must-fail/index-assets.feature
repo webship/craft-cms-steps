@@ -1,5 +1,5 @@
 @must-fail
-Feature: Assertions that must fail: the element index, assets and permissions
+Feature: Assertions that must fail: the element index and assets
   Every scenario asserts something that is not true on the test site.
   tests/check-must-fail.js runs them and checks each failure and its message.
 
@@ -124,31 +124,3 @@ Feature: Assertions that must fail: the element index, assets and permissions
     Fails with: The file "tests/fixtures/nothing.png" does not exist
     Given I am on the control panel page "assets"
     When I upload the file "tests/fixtures/nothing.png" to the assets index
-
-  Scenario: The account is in another group
-    Fails with: Expected the account to be in the "Editors" user group. Its groups are: Authors
-    Given I am on the control panel page "users"
-    When I open "Arthur Author" from the index
-    And I open the "Permissions" screen of the section navigation
-    Then the account should be in the "Editors" user group
-
-  Scenario: The permission is not granted
-    Fails with: Expected the permission "View users" under "Users" to be granted, but it is not
-    Given I am on the control panel page "users"
-    When I open "Arthur Author" from the index
-    And I open the "Permissions" screen of the section navigation
-    Then the permission "View users" under "Users" should be granted
-
-  Scenario: The permission is the account's own
-    Fails with: Expected the permission "View users" under "Users" to come from a user group, but it is not granted
-    Given I am on the control panel page "users"
-    When I open "Arthur Author" from the index
-    And I open the "Permissions" screen of the section navigation
-    Then the permission "View users" under "Users" should come from a user group
-
-  Scenario: There is no such permission
-    Fails with: There is no permission "Publish entries" under "Section - Blog"
-    Given I am on the control panel page "users"
-    When I open "Arthur Author" from the index
-    And I open the "Permissions" screen of the section navigation
-    Then the permission "Publish entries" under "Section - Blog" should be granted

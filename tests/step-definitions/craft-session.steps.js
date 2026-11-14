@@ -163,7 +163,7 @@ Given(/^(I |we )*(am logged in|are logged in|log in) to the control panel as "([
  * Example #2: When we log in to the control panel with the username "editor" and the password "Editor123456789!"
  * Example #3: When I log in to the control panel with the username "nobody" and the password "nothing-at-all"
  * Example #4: When I log in to the control panel with the username "admin@example.com" and the password "wrong-password"
- * Example #5: When we log in to the control panel with the username "member" and the password "Member123456789!"
+ * Example #5: When we log in to the control panel with the username "editor@example.com" and the password "Editor123456789!"
  */
 When(/^(I |we )*log in to the control panel with the username "([^"]*)" and the password "([^"]*)"$/, async function (pronounCase, username, password) {
   await submitLogin(this, username, password);
@@ -271,10 +271,10 @@ Then(/^(I |we )*should( not)* see the control panel login form$/, async function
  * Assert the error the control panel login form shows after a failed login.
  *
  * Example #1: Then I should see the login error "Invalid username or password."
- * Example #2: Then I should see the login error "You cannot access the control panel with that account."
+ * Example #2: Then I should see the login error "Password should contain at least 6 characters."
  * Example #3: Then we should see the login error "Invalid username or password."
  * Example #4: And I should see the login error "Invalid username"
- * Example #5: Then I should see the login error "cannot access the control panel"
+ * Example #5: Then I should see the login error "at least 6 characters"
  */
 Then(/^(I |we )*should see the login error "([^"]*)"$/, async function (pronounCase, text) {
   const deadline = Date.now() + budget(this);
@@ -299,11 +299,11 @@ const RESET_HINT = 'The login form has a "Forgot password?" button that swaps it
  * registry stands for its username), "Reset password". The form answers with
  * the same dialog whether the account exists or not.
  *
- * Example #1: When I ask for a password reset for "author"
+ * Example #1: When I ask for a password reset for "admin"
  * Example #2: When we ask for a password reset for "editor"
- * Example #3: When I ask for a password reset for "author@example.com"
+ * Example #3: When I ask for a password reset for "admin@example.com"
  * Example #4: And I ask for a password reset for "nobody-with-that-name"
- * Example #5: Given I ask for a password reset for "admin"
+ * Example #5: Given I ask for a password reset for "editor@example.com"
  */
 When(/^(I |we )*ask for a password reset for "([^"]*)"$/, async function (pronounCase, who) {
   const users = (this.parameters && this.parameters.users) || {};
@@ -355,10 +355,10 @@ Then(/^(I |we )*should see the password reset confirmation$/, async function (pr
  * newest such mail in the mailbox of the test site (`worldParameters.mailUrl`),
  * sent since the reset was asked for. The mail is removed from the mailbox.
  *
- * Example #1: When I open the password reset link sent to "author@example.com"
+ * Example #1: When I open the password reset link sent to "admin@example.com"
  * Example #2: When we open the password reset link sent to "editor@example.com"
  * Example #3: And I open the password reset link sent to "author@example.com"
- * Example #4: When I open the password reset link sent to "admin@example.com"
+ * Example #4: When I open the password reset link sent to "author@example.com"
  * Example #5: Then I open the password reset link sent to "author@example.com"
  */
 When(/^(I |we )*open the password reset link sent to "([^"]*)"$/, async function (pronounCase, address) {
@@ -382,10 +382,10 @@ When(/^(I |we )*open the password reset link sent to "([^"]*)"$/, async function
  * stands for the password the registry has for it, so a scenario can give an
  * account the password it had.
  *
- * Example #1: When I choose the new password "Author123456789!"
+ * Example #1: When I choose the new password "Admin123456789!"
  * Example #2: When we choose the new password "a-long-enough-password"
  * Example #3: When I choose the new password "abc"
- * Example #4: When I choose the new password of "author"
+ * Example #4: When I choose the new password of "admin"
  * Example #5: And we choose the new password of "editor"
  */
 When(/^(I |we )*choose the new password (of )?"([^"]*)"$/, async function (pronounCase, ofCase, value) {

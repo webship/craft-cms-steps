@@ -5,7 +5,7 @@ Feature: Slide-out editors
   So that small changes are quick
 
   Background:
-    Given I am logged in to the control panel as "editor"
+    Given I am logged in to the control panel as "admin"
     And I am on the control panel page "content/entries/pages"
 
   @critical

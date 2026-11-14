@@ -2,16 +2,15 @@
 
 Reference features for the test site that `.github/scripts/build-ddev-site.sh`
 builds: a Blog channel, a Pages structure, a Home single, a Notes channel of 120
-entries, an Images volume, a Topics category group, a Keywords tag group, the
-user groups Editors and Authors, and four accounts. Copy a feature into your
+entries, an Images volume, a Topics category group, a Keywords tag group, and
+the one account of the free edition. Copy a feature into your
 project and replace the sections, the titles and the labels with those of your
 site.
 
 | Feature | Covers |
 | --- | --- |
-| `session` | Logging in to and out of the control panel, a wrong password, an account without access, a password reset through the mail. |
-| `control-panel` | The primary navigation and its sub navigation, pages by name and by path, the breadcrumb and the menu of a crumb, the heading, the section navigation. |
-| `permissions` | What an author and an editor see and may open, the "Unauthorized" screen, the permissions screen, the users index. |
+| `session` | Logging in to and out of the control panel, a wrong password, the email address as the username, a password reset through the mail. |
+| `control-panel` | The primary navigation and its sub navigation, pages by name and by path, the breadcrumb and the menu of a crumb, the heading, the section navigation of the account, a screen that is refused. |
 | `entries` | Create, validate, change, discard changes, disable, delete and restore an entry; save and keep editing. |
 | `drafts-and-revisions` | A draft that stays away from the site until it is applied, revisions, the drafts of the index. |
 | `element-index` | Sources, search, the status filter, sorting by the View menu and by a column heading, showing and hiding a column, the cards view, pagination, the levels of a structure and moving an entry in it, selection, bulk actions and what the selection offers. |

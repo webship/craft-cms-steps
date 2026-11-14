@@ -5,7 +5,7 @@ Feature: Entries
   So that the site shows what I mean it to show
 
   Background:
-    Given I am logged in to the control panel as "editor"
+    Given I am logged in to the control panel as "admin"
 
   @critical
   Scenario: Create and publish an entry

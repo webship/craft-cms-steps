@@ -56,16 +56,16 @@ async function crumbs(world) {
 
 /**
  * Open a control panel page by its name (dashboard, entries, categories,
- * assets, users, my account, utilities, system report, settings, sections,
+ * assets, my account, utilities, system report, settings, sections,
  * entry types, fields, sites, volumes, filesystems, category groups, tag
- * groups, user groups, plugins, ...) or by its path after the control panel
+ * groups, user settings, plugins, ...) or by its path after the control panel
  * trigger. An address the control panel does not know fails the step.
  *
  * Example #1: When I go to the control panel page "entries"
  * Example #2: When I go to the control panel page "settings"
  * Example #3: Given I am on the control panel page "dashboard"
  * Example #4: When we go to the control panel page "content/entries/blog"
- * Example #5: Given we are on the control panel page "user groups"
+ * Example #5: Given we are on the control panel page "tag groups"
  */
 When(/^(I |we )*(go to|am on|are on) the control panel page "([^"]*)"$/, async function (pronounCase, verbCase, name) {
   await forgetNotifications(this);
@@ -77,7 +77,7 @@ When(/^(I |we )*(go to|am on|are on) the control panel page "([^"]*)"$/, async f
  *
  * Example #1: When I click "Entries" in the control panel navigation
  * Example #2: When I click "Assets" in the control panel navigation
- * Example #3: When we click "Users" in the control panel navigation
+ * Example #3: When we click "Categories" in the control panel navigation
  * Example #4: And I click "Settings" in the control panel navigation
  * Example #5: When I click "Dashboard" in the control panel navigation
  */
@@ -124,7 +124,7 @@ Then(/^(I |we )*should( not)* see "([^"]*)" in the control panel navigation$/, a
  * Example #1: Then the control panel navigation item "Entries" should be selected
  * Example #2: Then the control panel navigation item "Dashboard" should be selected
  * Example #3: Then the control panel navigation item "Assets" should be selected
- * Example #4: And the control panel navigation item "Users" should be selected
+ * Example #4: And the control panel navigation item "Categories" should be selected
  * Example #5: Then the control panel navigation item "Settings" should be selected
  */
 Then(/^the control panel navigation item "([^"]*)" should be selected$/, async function (label) {
@@ -213,7 +213,7 @@ When(/^(I |we )*choose "([^"]*)" from the menu of the "([^"]*)" crumb$/, async f
  * Example #1: Then the control panel breadcrumb should be "Entries > Blog > Launch day"
  * Example #2: Then the control panel breadcrumb should be "Settings > Sections"
  * Example #3: Then the control panel breadcrumb should be "Entries > Pages > About"
- * Example #4: And the control panel breadcrumb should be "Users > Arthur Author"
+ * Example #4: And the control panel breadcrumb should be "Settings > Entry Types"
  * Example #5: Then the control panel breadcrumb should be "Categories > Topics > Product"
  */
 Then(/^the control panel breadcrumb should be "([^"]*)"$/, async function (trail) {
@@ -231,7 +231,7 @@ Then(/^the control panel breadcrumb should be "([^"]*)"$/, async function (trail
  * Example #1: When I click "Blog" in the control panel breadcrumb
  * Example #2: When I click "Entries" in the control panel breadcrumb
  * Example #3: When we click "Settings" in the control panel breadcrumb
- * Example #4: And I click "Users" in the control panel breadcrumb
+ * Example #4: And I click "Categories" in the control panel breadcrumb
  * Example #5: When I click "Topics" in the control panel breadcrumb
  */
 When(/^(I |we )*click "([^"]*)" in the control panel breadcrumb$/, async function (pronounCase, text) {
@@ -332,7 +332,7 @@ Then(/^(I |we )*should see the unauthorized screen(?: with "([^"]*)")?$/, async 
  *
  * Example #1: Then I should be allowed to open the control panel page "entries"
  * Example #2: Then I should not be allowed to open the control panel page "settings"
- * Example #3: Then we should not be allowed to open the control panel page "users"
+ * Example #3: Then we should not be allowed to open the control panel page "globals"
  * Example #4: Then I should not be allowed to open the control panel page "utilities/system-report"
  * Example #5: And I should be allowed to open the control panel page "assets"
  */
@@ -360,9 +360,9 @@ Then(/^(I |we )*should( not)* be allowed to open the control panel page "([^"]*)
 
 /**
  * Open a screen of the section navigation at the side of a control panel
- * screen: "Permissions" of a user account, "Sections" of the settings.
+ * screen: "Preferences" of the account, "Settings" of the user settings.
  *
- * Example #1: When I open the "Permissions" screen of the section navigation
+ * Example #1: When I open the "Passkeys" screen of the section navigation
  * Example #2: When I open the "Addresses" screen of the section navigation
  * Example #3: When we open the "Profile" screen of the section navigation
  * Example #4: And I open the "Preferences" screen of the section navigation
