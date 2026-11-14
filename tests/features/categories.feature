@@ -5,7 +5,7 @@ Feature: Categories
   So that visitors browse the blog by topic
 
   Background:
-    Given I am logged in to the control panel as "editor"
+    Given I am logged in to the control panel as "admin"
 
   @critical
   Scenario: The categories index lists the topics

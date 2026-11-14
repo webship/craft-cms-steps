@@ -1,7 +1,7 @@
 <?php
 /**
- * Seeds the content model, the accounts and the content the test suite runs
- * against. Run once on a fresh install, from the project root, inside the web
+ * Seeds the content model and the content the test suite runs against, on the
+ * free edition the site is installed with. Run once on a fresh install, from the project root, inside the web
  * container:
  *
  *   php seed.php
@@ -10,8 +10,7 @@
  * site built by hand in the control panel, and the project config YAML is
  * written as usual. Running it again on a seeded site does nothing.
  *
- * Passwords come from the environment (EDITOR_PASSWORD, AUTHOR_PASSWORD,
- * MEMBER_PASSWORD), with the defaults of cucumber.js.
+ * The only account is the one the installer made (the admin of cucumber.js).
  */
 
 use craft\elements\Asset;
@@ -19,7 +18,6 @@ use craft\elements\Category;
 use craft\elements\Entry;
 use craft\elements\Tag;
 use craft\elements\User;
-use craft\enums\CmsEdition;
 use craft\fieldlayoutelements\CustomField;
 use craft\fieldlayoutelements\entries\EntryTitleField;
 use craft\fields\Assets as AssetsField;
@@ -40,7 +38,6 @@ use craft\models\FieldLayoutTab;
 use craft\models\Section;
 use craft\models\Section_SiteSettings;
 use craft\models\TagGroup;
-use craft\models\UserGroup;
 use craft\models\Volume;
 
 require __DIR__ . '/bootstrap.php';
@@ -64,9 +61,8 @@ if (Craft::$app->getEntries()->getSectionByHandle('blog')) {
     exit(0);
 }
 
-// User groups and permissions need the Pro edition, which runs as a free trial
-// on a local development domain. No licence is entered.
-Craft::$app->setEdition(CmsEdition::Pro);
+// The site stays on the free edition it is installed with (Solo): one account,
+// no user groups, no permissions. Nothing here changes the edition.
 // One time zone everywhere, so dates read the same on every machine.
 Craft::$app->getProjectConfig()->set('system.timeZone', 'UTC');
 date_default_timezone_set('UTC');
@@ -232,56 +228,9 @@ $articleType = entryType('Article', 'article', [
 $blog = section('Blog', 'blog', Section::TYPE_CHANNEL, [$articleType], 'blog/{slug}', 'blog/_entry');
 
 // ---------------------------------------------------------------------------
-// User groups, permissions and the accounts of cucumber.js.
+// The account of cucumber.js: the one the installer made. The free edition has
+// no other account, no user group and no permission.
 // ---------------------------------------------------------------------------
-function group(string $name, string $handle, array $permissions): UserGroup
-{
-    $group = new UserGroup(['name' => $name, 'handle' => $handle]);
-    Craft::$app->getUserGroups()->saveGroup($group) || fail("user group $handle", $group);
-    Craft::$app->getUserPermissions()->saveGroupPermissions($group->id, $permissions);
-    return $group;
-}
-
-function entryPermissions(Section $section, bool $peers): array
-{
-    $own = ['viewEntries', 'createEntries', 'saveEntries', 'deleteEntries'];
-    $peer = ['viewPeerEntries', 'savePeerEntries', 'deletePeerEntries', 'viewPeerEntryDrafts', 'savePeerEntryDrafts', 'deletePeerEntryDrafts'];
-    return array_map(fn($name) => "$name:{$section->uid}", $peers ? array_merge($own, $peer) : $own);
-}
-
-$assetPermissions = array_map(fn($name) => "$name:{$volume->uid}", ['viewAssets', 'saveAssets', 'deleteAssets', 'viewPeerAssets', 'savePeerAssets', 'deletePeerAssets', 'createFolders']);
-$categoryPermissions = array_map(fn($name) => "$name:{$topics->uid}", ['viewCategories', 'saveCategories', 'deleteCategories']);
-
-// Editors manage all content, assets and categories, but not users or settings.
-$editors = group('Editors', 'editors', array_merge(
-    ['accessCp'],
-    entryPermissions($blog, true),
-    entryPermissions($pages, true),
-    entryPermissions($notes, true),
-    entryPermissions($home, true),
-    $assetPermissions,
-    $categoryPermissions,
-));
-// Authors write their own Blog entries and see the Images volume, nothing else.
-$authors = group('Authors', 'authors', array_merge(
-    ['accessCp'],
-    entryPermissions($blog, false),
-    ["viewAssets:{$volume->uid}", "saveAssets:{$volume->uid}"],
-));
-
-function account(string $username, string $fullName, string $password, array $groups): User
-{
-    $user = new User(['username' => $username, 'email' => "$username@example.com", 'fullName' => $fullName, 'newPassword' => $password]);
-    Craft::$app->getElements()->saveElement($user) || fail("user $username", $user);
-    Craft::$app->getUsers()->activateUser($user);
-    Craft::$app->getUsers()->assignUserToGroups($user->id, array_map(fn($group) => $group->id, $groups));
-    return $user;
-}
-
-$editor = account('editor', 'Edith Editor', getenv('EDITOR_PASSWORD') ?: 'Editor123456789!', [$editors]);
-$author = account('author', 'Arthur Author', getenv('AUTHOR_PASSWORD') ?: 'Author123456789!', [$authors]);
-// A member has an account but no access to the control panel.
-$member = account('member', 'Mia Member', getenv('MEMBER_PASSWORD') ?: 'Member123456789!', []);
 $admin->fullName = 'Ada Admin';
 Craft::$app->getElements()->saveElement($admin);
 
@@ -366,8 +315,8 @@ foreach ($articles as $index => [$title, $kindValue, $isFeatured, $topic, $tag, 
         'postDate' => (new DateTime('2026-01-31 09:00:00'))->modify("-$index day"),
     ]);
 }
-// One article of the author's own, one disabled article, and one draft.
-entry($blog, $articleType, 'Notes from the author', ['summary' => 'Written by the author account.', 'kind' => 'opinion', 'topics' => [$categories['Community']->id]], ['authorId' => $author->id, 'postDate' => new DateTime('2026-01-10 09:00:00')]);
+// One more article, one disabled article, and one draft.
+entry($blog, $articleType, 'Notes from the author', ['summary' => 'A few notes, written on a quiet day.', 'kind' => 'opinion', 'topics' => [$categories['Community']->id]], ['authorId' => $admin->id, 'postDate' => new DateTime('2026-01-10 09:00:00')]);
 entry($blog, $articleType, 'Unfinished thoughts', ['summary' => 'Not ready for visitors.', 'kind' => 'opinion'], ['enabled' => false, 'postDate' => new DateTime('2026-01-05 09:00:00')]);
 
 // 120 notes without URLs, for the pagination and the bulk actions of the element index.
@@ -378,4 +327,4 @@ for ($number = 1; $number <= 120; $number++) {
 Craft::$app->getQueue()->run();
 // A console command writes the project config when it ends; this script is not one, so it does it itself.
 Craft::$app->getProjectConfig()->saveModifiedConfigData();
-say('Seeded: sections Blog, Pages, Home, Notes; volume Images; categories, tags, groups Editors and Authors; accounts editor, author, member.');
+say('Seeded: sections Blog, Pages, Home, Notes; volume Images; categories and tags.');

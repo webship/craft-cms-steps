@@ -5,7 +5,7 @@ Feature: Drafts and revisions
   So that visitors see finished work only, and earlier versions stay at hand
 
   Background:
-    Given I am logged in to the control panel as "editor"
+    Given I am logged in to the control panel as "admin"
     And there is no entry titled "An entry with versions"
     And I start a new entry in the "Blog" section
     And I fill in the "Title" field with "An entry with versions"

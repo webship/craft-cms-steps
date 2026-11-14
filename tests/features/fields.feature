@@ -5,7 +5,7 @@ Feature: The fields of an entry
   So that an entry carries its text, its options, its dates, its relations and its blocks
 
   Background:
-    Given I am logged in to the control panel as "editor"
+    Given I am logged in to the control panel as "admin"
 
   @critical
   Scenario: An entry with every kind of field reaches the site
@@ -43,7 +43,7 @@ Feature: The fields of an entry
     And I should see "Event date: 4 July 2027"
     And I should see "Topics: Engineering"
     And I should see "Keywords: howto, a tag the suite made"
-    And I should see "Edith Editor"
+    And I should see "Ada Admin"
     And there is no entry titled "An entry with every field"
 
   Scenario: The form shows the values an entry holds

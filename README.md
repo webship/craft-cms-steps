@@ -10,12 +10,12 @@ breadcrumbs and notifications, entries from a new entry to the trash and back,
 drafts and revisions, the element index (sources, search, filters, sorting,
 pagination, bulk actions), slide-out editors, the preview, fields of the common
 types (plain text, rich text, lightswitch, dropdown, date, assets, entries,
-categories, tags, matrix), assets, categories, user groups and permissions, and
-the addresses of the site. The steps are written against the markup of Craft
-CMS 5 (5.12).
+categories, tags, matrix), assets, categories, and the addresses of the site.
+The steps are written against the markup of Craft CMS 5 (5.12), on its free
+edition (Solo).
 
 No step phrase names the platform: a scenario reads `I am logged in to the
-control panel as "editor"`. The name appears only where it is what a step
+control panel as "admin"`. The name appears only where it is what a step
 asserts, as an argument (`the site should be powered by "Craft CMS"`).
 
 CI builds a real Craft CMS site with [DDEV](https://ddev.com) and runs the whole
@@ -56,7 +56,7 @@ npm install --save-dev @webship-js/craft-cms-steps
      pageTrigger: 'p',     // what comes before the page number of a listing
      mailUrl: 'https://your-site.ddev.site:8026', // the mailbox of the site (Mailpit), for the password reset steps
      users: {
-       editor: { username: 'editor', password: process.env.EDITOR_PASSWORD },
+       admin: { username: 'admin', password: process.env.ADMIN_PASSWORD },
      },
    },
    ```
@@ -68,7 +68,7 @@ npm install --save-dev @webship-js/craft-cms-steps
 Feature: Entries
 
   Scenario: Create and publish an entry
-    Given I am logged in to the control panel as "editor"
+    Given I am logged in to the control panel as "admin"
     And there is no entry titled "A scenario wrote this"
     When I start a new entry in the "Blog" section
     And I fill in the "Title" field with "A scenario wrote this"
@@ -90,7 +90,6 @@ Feature: Entries
 | `craft-editor.steps.js` | 22 | The edit form: new entries and categories, saving, menus, tabs, stored changes, drafts and revisions, slide-out editors, the preview, the page on the site. |
 | `craft-fields.steps.js` | 25 | Fields by label: text, rich text, lightswitch, dropdown, date, relation fields, uploads, tags, matrix blocks, errors. |
 | `craft-assets.steps.js` | 4 | Uploads to the assets index, the question about a file whose name is taken, thumbnails. |
-| `craft-users.steps.js` | 3 | User groups and permissions of an account, and where a permission comes from. |
 | `craft-site.steps.js` | 5 | Published addresses, the pages of a listing, the page of an index item, the `X-Powered-By` header. |
 | `craft-helpers.js` | | Shared plumbing for the files above and for your own steps. It registers no step. |
 
@@ -121,15 +120,13 @@ project's own Twig, so this pack adds only what the system decides.
 
 ## Accounts
 
-The suite never creates or deletes a user. Accounts are configuration: create
-them once on the test site (the `users/create` console command, or the site
-build) and list them in `worldParameters.users`, by a handle the scenarios use:
+The suite never creates or deletes a user. Accounts are configuration: list
+the ones the site has in `worldParameters.users`, by a handle the scenarios
+use. The free edition has one account, the one the installer makes:
 
 ```javascript
 users: {
-  admin:  { username: 'admin',  password: process.env.ADMIN_PASSWORD },
-  editor: { username: 'editor', password: process.env.EDITOR_PASSWORD },
-  author: { username: 'author', password: process.env.AUTHOR_PASSWORD },
+  admin: { username: 'admin', password: process.env.ADMIN_PASSWORD },
 },
 ```
 
@@ -140,7 +137,8 @@ limits login attempts from one address (the `defaultRateLimit` general setting,
 10 a minute by default), which a suite that logs in for every scenario exceeds.
 `reuseSessions: false` in `worldParameters` turns it off.
 
-User groups and permissions need an edition of Craft CMS that has them.
+The steps are proven on the free edition only. User groups, permissions and
+further accounts belong to the paid editions: the pack has no step for them.
 
 ## A test site
 
@@ -167,12 +165,12 @@ control panel would have saved:
   with the entry types Text block and Quote);
 - the Images volume with two images, the Topics category group, the Keywords
   tag group;
-- the user groups Editors and Authors, and the accounts `admin`, `editor`,
-  `author` and `member` of `cucumber.js`.
+- no account: the only one is the admin the installer made, named in
+  `cucumber.js`.
 
-No licence is entered and nothing signs in to an account or a store. User groups
-run on the Pro edition as a trial, which Craft CMS allows on a local
-development domain.
+The site runs the free edition it is installed with (Solo). No paid edition is
+switched on, not even as a trial; no licence is entered or bought; nothing
+signs in to an account or to the plugin store.
 
 ## Steps
 
@@ -200,7 +198,7 @@ One example of each step; the JSDoc block above each definition holds five.
 - `I should not see an error notification`
 - `I should see the unauthorized screen`
 - `I should be allowed to open the control panel page "entries"`
-- `I open the "Permissions" screen of the section navigation`
+- `I open the "Passkeys" screen of the section navigation`
 - `the control panel system name should be "Webship Test Site"`
 
 ### `craft-editor.steps.js` (22)
@@ -296,10 +294,10 @@ One example of each step; the JSDoc block above each definition holds five.
 - `I should be logged in to the control panel as "admin"`
 - `I should see the control panel login form`
 - `I should see the login error "Invalid username or password."`
-- `I ask for a password reset for "author"`
+- `I ask for a password reset for "admin"`
 - `I should see the password reset confirmation`
-- `I open the password reset link sent to "author@example.com"`
-- `I choose the new password "Author123456789!"`
+- `I open the password reset link sent to "admin@example.com"`
+- `I choose the new password "Admin123456789!"`
 - `I should see the new password error "should contain at least 6 characters"`
 
 ### `craft-site.steps.js` (5)
@@ -309,12 +307,6 @@ One example of each step; the JSDoc block above each definition holds five.
 - `I go to page 2 of the "blog" listing`
 - `I should be on page 2 of the listing`
 - `I visit the page of "Launch day" from the index`
-
-### `craft-users.steps.js` (3)
-
-- `the account should be in the "Authors" user group`
-- `the permission "Save entries" under "Section - Blog" should be granted`
-- `the permission "View entries" under "Section - Blog" should come from a user group`
 
 ## Testing this package
 

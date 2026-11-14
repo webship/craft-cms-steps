@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Builds the site the suite runs against: the current stable Craft CMS 5 in a
 # DDEV project, installed non-interactively the documented way, with the
-# CKEditor plugin, the content model, the accounts and the content of
+# CKEditor plugin, the content model and the content of
 # site/seed.php, and the Twig templates of site/templates.
 #
 # Settings (environment variables, all optional):
@@ -9,12 +9,12 @@
 #   SITE_DIR         the project folder                (default a new temporary folder)
 #   CMS_VERSION      a composer constraint for craftcms/cms (default: what the starter project asks for, ^5)
 #   ADMIN_USER, ADMIN_PASSWORD   the admin account     (default admin / Admin123456789!)
-#   EDITOR_PASSWORD, AUTHOR_PASSWORD, MEMBER_PASSWORD  the passwords of the editor, author and member accounts
-# The accounts are configuration: they are created once here and named in
-# cucumber.js; the features never create or delete users.
+# The account is configuration: the installer creates it and cucumber.js names
+# it; the features never create or delete users.
 #
-# No licence is entered and nothing signs in anywhere. User groups need the Pro
-# edition, which runs as a free trial on a local development domain.
+# The site stays on the free edition it is installed with (Solo). No licence is
+# entered, no paid edition is switched on, not even as a trial, and nothing
+# signs in anywhere.
 set -euo pipefail
 
 PROJECT_NAME="${PROJECT_NAME:-craftcmssteps}"
@@ -56,7 +56,7 @@ ddev craft plugin/install ckeditor
 
 cp -r "$REPO_DIR/site/templates/." templates/
 cp "$REPO_DIR/site/seed.php" seed.php
-ddev exec "EDITOR_PASSWORD='${EDITOR_PASSWORD:-}' AUTHOR_PASSWORD='${AUTHOR_PASSWORD:-}' MEMBER_PASSWORD='${MEMBER_PASSWORD:-}' php seed.php"
+ddev exec php seed.php
 
 if [ -n "${GITHUB_ENV:-}" ]; then
   echo "LAUNCH_URL=$SITE_URL" >> "$GITHUB_ENV"

@@ -318,7 +318,6 @@ const CP_PAGES = {
   'entries': 'content/entries',
   'categories': 'categories',
   'assets': 'assets',
-  'users': 'users',
   'my account': 'myaccount',
   'utilities': 'utilities',
   'system report': 'utilities/system-report',
@@ -341,7 +340,6 @@ const CP_PAGES = {
   'image transforms': 'settings/assets/transforms',
   'category groups': 'settings/categories',
   'tag groups': 'settings/tags',
-  'user groups': 'settings/users',
   'user fields': 'settings/users/fields',
   'user settings': 'settings/users/settings',
   'plugins': 'settings/plugins',
@@ -574,7 +572,7 @@ async function chooseFromMenu(world, button, item, what) {
 // The element index
 // ---------------------------------------------------------------------------
 
-const INDEX_HINT = 'Open an index first (Entries, Categories, Assets or Users), or the selection modal of a relation field. The index is `.element-index` with its items in `div.elements`.';
+const INDEX_HINT = 'Open an index first (Entries, Categories or Assets), or the selection modal of a relation field. The index is `.element-index` with its items in `div.elements`.';
 
 // The list of an index. A relation field of an edit form is a `ul.elements` too, so the list is the `div`.
 const LIST = 'div.elements';
@@ -716,15 +714,21 @@ const FORM_HINT = 'Open an edit form first (an entry, a category, an asset, a us
 
 /**
  * Wait until every element editor on the screen is ready. A form shows its
- * fields before the editor behind it has started; the editor remembers the
- * values it starts with and saves only what changed since, so a value typed
- * too early is taken for the stored one and never saved.
+ * fields before the editor behind it has started (a slide-out about a tenth of
+ * a second before); the editor remembers the values it starts with and saves
+ * only what changed since, so a value typed too early is taken for the stored
+ * one and never saved. A form is ready when it carries `data-element-editor`
+ * and its editor holds the values it started with: every slide-out that shows
+ * has to get there, and so does the form of the page when it is an editor.
  */
 async function waitForEditors(world) {
   await world.page.waitForFunction(() => {
-    const forms = [...document.querySelectorAll('form[data-element-editor]')].filter((form) => form.offsetParent !== null);
-    if (!window.jQuery) return forms.length === 0;
-    return forms.every((form) => window.jQuery(form).data('elementEditor') && window.jQuery(form).data('initialSerializedValue') !== undefined);
+    // `offsetParent` is null for the fixed panels of the preview: go by the boxes.
+    const shows = (node) => node.getClientRects().length > 0;
+    const ready = (form) => form.hasAttribute('data-element-editor') && (!window.jQuery || (window.jQuery(form).data('elementEditor') && window.jQuery(form).data('initialSerializedValue') !== undefined));
+    const slideouts = [...document.querySelectorAll('.slideout-container .slideout')].filter(shows);
+    const forms = [...document.querySelectorAll('form[data-element-editor]')].filter(shows);
+    return slideouts.every(ready) && forms.every(ready);
   }, null, { timeout: budget(world) }).catch(() => {});
 }
 
