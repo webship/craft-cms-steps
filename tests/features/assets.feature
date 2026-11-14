@@ -35,6 +35,51 @@ Feature: Assets
     Then the index should hold 2 items
     And there is no asset titled "Pixel"
 
+  Scenario: The assets index shows as thumbnails
+    When I go to the control panel page "assets"
+    And I switch the index to the "thumbs" view
+    Then I should see "Harbour" in the index
+    And "Harbour" should show a thumbnail in the index
+    And "Harbour" should have the status "Enabled" in the index
+    When I select "Harbour" in the index
+    Then 1 item should be selected in the index
+    When I switch the index to the "table" view
+    Then "Harbour" should show "harbour.png" in the "Filename" column of the index
+
+  Scenario: A file whose name is taken asks what to do
+    Given I log in to the control panel as "admin"
+    And there is no asset titled "Pixel"
+    When I go to the control panel page "assets"
+    And I upload the file "tests/fixtures/pixel.png" to the assets index
+    Then the index should hold 3 items
+    And I should not see the file conflict question
+    When I go to the control panel page "assets"
+    And I upload the file "tests/fixtures/pixel.png" to the assets index
+    Then I should see the file conflict question
+    And I should see "A file with the name “pixel.png” already exists."
+    When I answer the file conflict with "Cancel"
+    Then the index should hold 3 items
+    When I go to the control panel page "assets"
+    And I upload the file "tests/fixtures/pixel.png" to the assets index
+    And I answer the file conflict with "Replace it"
+    Then I should not see an error notification
+    And the index should hold 3 items
+    When I go to the control panel page "assets"
+    And I upload the file "tests/fixtures/pixel.png" to the assets index
+    And I answer the file conflict with "Keep both"
+    Then the index should hold 4 items
+    And there is no asset titled "Pixel"
+
+  Scenario: An editor may not replace a file
+    Given there is no asset titled "Pixel"
+    When I go to the control panel page "assets"
+    And I upload the file "tests/fixtures/pixel.png" to the assets index
+    And I go to the control panel page "assets"
+    And I upload the file "tests/fixtures/pixel.png" to the assets index
+    And I answer the file conflict with "Replace it"
+    Then I should see the error notification "User is not authorized to perform this action."
+    And there is no asset titled "Pixel"
+
   Scenario: Upload a file straight into a field
     Given there is no asset titled "Pixel"
     When I go to the control panel page "content/entries/blog"

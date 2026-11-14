@@ -71,6 +71,8 @@ Feature: What an account may do
     And the permission "View users" under "Users" should not be granted
     And the permission "View assets" under "Volume - Images" should be granted
     And the permission "Delete assets" under "Volume - Images" should not be granted
+    And the permission "View entries" under "Section - Blog" should come from a user group
+    And the permission "View users" under "Users" should not come from a user group
 
   Scenario: The users index lists the accounts by group
     Given I am logged in to the control panel as "admin"

@@ -22,12 +22,15 @@ const {
   listed,
   settle,
   eventually,
+  assertPresence,
+  expectNotification,
   openCpPage,
   forgetNotifications,
   acceptNextDialog,
   chooseFromOpenMenu,
   chooseFromMenu,
   INDEX_HINT,
+  LIST,
   indexScope,
   waitForIndex,
   reloadingIndex,
@@ -50,10 +53,29 @@ function toolbar(scope) {
   return scope.locator('#toolbar, .toolbar').first();
 }
 
+/**
+ * Open the "View" menu of the index and return it. Each source has a button
+ * and a menu of its own, and the index swaps them a moment after a source
+ * opens: the menu that counts is the one of the button that shows.
+ */
+async function openViewMenu(world, scope) {
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    await waitForIndex(world, scope);
+    const button = toolbar(scope).locator('button[aria-label="View settings"]:not(.hidden)').first();
+    if (!(await button.count())) break;
+    const menu = world.page.locator(`[id=${quoted(await button.getAttribute('aria-controls'))}]`).first();
+    if (!(await menu.isVisible().catch(() => false))) await button.click().catch(() => {});
+    const open = await menu.waitFor({ state: 'visible', timeout: 3000 }).then(() => true).catch(() => false);
+    if (open && !/\bhidden\b/.test((await button.getAttribute('class').catch(() => 'hidden')) || '')) return { button, menu };
+  }
+  throw friendly({ message: 'The index has no "View" menu.', hint: INDEX_HINT });
+}
+
 /** The status of an index item: the label of the Status column, else the status of its chip or card. */
 async function itemStatus(item) {
   return item.evaluate((node) => {
-    const cell = node.querySelector('td[data-attr="status"] .status-label-text, td[data-attr="status"]');
+    // The table has a Status column, a card a status label; a thumbnail or a chip only its status dot.
+    const cell = node.querySelector('td[data-attr="status"] .status-label-text, td[data-attr="status"], .card-body .status-label-text');
     if (cell && cell.textContent.trim()) return cell.textContent.trim();
     const own = node.matches('tr') ? node.querySelector('th .element') : node.querySelector('.element');
     if (!own) return '';
@@ -65,7 +87,7 @@ async function itemStatus(item) {
 
 /** The selected items of an index. */
 function selectedItems(scope) {
-  return scope.locator('.elements tbody tr.sel, .elements .card-grid > li.sel, .elements .card-grid > li:has(.element.sel), .elements ul.structure li.sel');
+  return scope.locator(`${LIST} tbody tr.sel, ${LIST} .card-grid > li.sel, ${LIST} .card-grid > li:has(.element.sel), ${LIST} .thumbsview > li.sel, ${LIST} .thumbsview > li:has(.element.sel)`);
 }
 
 /** Fail unless the index has a selection. */
@@ -195,9 +217,15 @@ When(/^(I |we )*clear the search of the index$/, async function (pronounCase) {
     throw friendly({ message: 'The index has no search field.', hint: INDEX_HINT });
   }
   if (!(await input.inputValue())) return;
+  // The field shows a "Clear search" button once it holds text: a person clicks that.
+  const clear = toolbar(scope).locator('.search-container .clear-btn:not(.hidden)').first();
   await reloadingIndex(this, scope, async () => {
-    await input.fill('');
-    await input.press('Enter');
+    if (await clear.count()) {
+      await clear.click();
+    } else {
+      await input.fill('');
+      await input.press('Enter');
+    }
   });
 });
 
@@ -235,15 +263,7 @@ When(/^(I |we )*filter the index by the "([^"]*)" status$/, async function (pron
 When(/^(I |we )*sort the index by "([^"]*)" in "(ascending|descending)" order$/, async function (pronounCase, attribute, direction) {
   const scope = await indexScope(this);
   await waitForIndex(this, scope);
-  const button = toolbar(scope).locator('button[aria-label="View settings"]:not(.hidden)').first();
-  if (!(await button.count())) {
-    throw friendly({ message: 'The index has no "View" menu.', hint: INDEX_HINT });
-  }
-  // Each source of the index has a View menu of its own: the button names the one that belongs to it.
-  const menuId = await button.getAttribute('aria-controls');
-  await button.click();
-  const menu = this.page.locator(`[id=${quoted(menuId)}]`).first();
-  await menu.waitFor({ state: 'visible', timeout: budget(this) });
+  const { button, menu } = await openViewMenu(this, scope);
   const select = menu.locator('select[aria-label="Sort attribute"]').first();
   const options = (await select.locator('option').allTextContents()).map(clean);
   if (!options.includes(attribute)) {
@@ -251,7 +271,7 @@ When(/^(I |we )*sort the index by "([^"]*)" in "(ascending|descending)" order$/,
     throw friendly({ message: `The index cannot be sorted by "${attribute}". It sorts by: ${listed(options)}.`, hint: 'Use a label of the "Sort by" list of the View menu. A structure section is sorted by its structure.' });
   }
   const dir = direction === 'ascending' ? 'asc' : 'desc';
-  if (clean(await select.locator('option:checked').textContent()) !== attribute) {
+  if (clean(await select.evaluate((node) => (node.options[node.selectedIndex] || {}).textContent || '')) !== attribute) {
     await reloadingIndex(this, scope, () => select.selectOption({ label: attribute }));
   }
   const directionButton = menu.locator(`button[data-dir="${dir}"]`).first();
@@ -409,10 +429,11 @@ Then(/^"([^"]*)" should show "([^"]*)" in the "([^"]*)" column of the index$/, a
   const item = await requireIndexItem(this, scope, title);
   const cell = item.locator(`td[data-title=${quoted(column)}]`).first();
   if (!(await cell.count())) {
-    const columns = await scope.locator('.elements thead th').evaluateAll((cells) => cells.map((cell) => (cell.getAttribute('title') || cell.textContent || '').replace(/\s+/g, ' ').trim()).filter(Boolean));
+    const columns = await scope.locator(`${LIST} thead th`).evaluateAll((cells) => cells.map((cell) => (cell.getAttribute('title') || cell.textContent || '').replace(/\s+/g, ' ').trim()).filter(Boolean));
     throw friendly({ message: `The index has no "${column}" column. Its columns are: ${listed(columns)}.`, hint: 'Columns show in the table view; the "View" menu of the index chooses them.' });
   }
-  await eventually(this, async () => clean(await cell.innerText()), (found) => found.includes(value), (found) => ({
+  // The text of the cell as it is written: the stylesheet shows some of it (a status) in capitals.
+  await eventually(this, async () => clean(await cell.textContent()), (found) => found.includes(value), (found) => ({
     message: `Expected "${title}" to show "${value}" in the "${column}" column of the index, found "${found}".`,
     hint: 'The value is compared with the text of the cell.',
   }));
@@ -466,7 +487,7 @@ When(/^(I |we )*select "([^"]*)" in the index$/, async function (pronounCase, ti
 When(/^(I |we )*select all items in the index$/, async function (pronounCase) {
   const scope = await indexScope(this);
   await waitForIndex(this, scope);
-  const all = scope.locator('.elements .selectallcontainer .checkbox, .elements .selectallcontainer [role="checkbox"]').first();
+  const all = scope.locator(`${LIST} .selectallcontainer [role="checkbox"]`).first();
   if (!(await all.count()) || !(await indexItems(scope).count())) {
     throw friendly({ message: 'The index has nothing to select.', hint: 'Check the source, the status filter and the search of the index.' });
   }
@@ -474,7 +495,7 @@ When(/^(I |we )*select all items in the index$/, async function (pronounCase) {
   const total = await indexItems(scope).count();
   for (let attempt = 0; attempt < 2 && (await selectedItems(scope).count()) < total; attempt += 1) {
     await all.click();
-    await this.page.waitForFunction((root) => root.querySelectorAll('.elements tbody tr.sel, .elements .card-grid > li.sel, .elements .element.sel').length > 0, await scope.elementHandle(), { timeout: 2000 }).catch(() => {});
+    await this.page.waitForFunction((root) => root.querySelectorAll('div.elements tbody tr.sel, div.elements li.sel, div.elements .element.sel').length > 0, await scope.elementHandle(), { timeout: 2000 }).catch(() => {});
   }
   const selected = await selectedItems(scope).count();
   if (selected < total) {
@@ -534,6 +555,204 @@ When(/^(I |we )*set the status of the selected items to "([^"]*)"$/, async funct
 When(/^(I |we )*choose "([^"]*)" for the selected items of the index$/, async function (pronounCase, action) {
   const scope = await indexScope(this);
   await chooseSelectionAction(this, scope, action);
+});
+
+/**
+ * Sort the index by clicking the heading of a column of its table, as a person
+ * does: a first click sorts by the column, a click on the column the index is
+ * sorted by turns the order around.
+ *
+ * Example #1: When I click the "Entry" column heading of the index
+ * Example #2: When I click the "Post Date" column heading of the index
+ * Example #3: When we click the "Expiry Date" column heading of the index
+ * Example #4: And I click the "Filename" column heading of the index
+ * Example #5: When I click the "Section" column heading of the index
+ */
+When(/^(I |we )*click the "([^"]*)" column heading of the index$/, async function (pronounCase, column) {
+  const scope = await indexScope(this);
+  await waitForIndex(this, scope);
+  const headings = scope.locator(`${LIST} thead th[data-attribute]`);
+  const labels = await headings.evaluateAll((cells) => cells.map((cell) => ({ label: (cell.getAttribute('title') || cell.textContent || '').replace(/\s+/g, ' ').trim(), sortable: !!cell.querySelector('button') })));
+  const index = labels.findIndex((item) => item.label === column);
+  if (index < 0) {
+    throw friendly({ message: `The index has no "${column}" column. Its columns are: ${listed(labels.map((item) => item.label))}.`, hint: 'Columns show in the table view; the "View" menu of the index chooses them.' });
+  }
+  if (!labels[index].sortable) {
+    throw friendly({ message: `The index cannot be sorted by its "${column}" column. It sorts by: ${listed(labels.filter((item) => item.sortable).map((item) => item.label))}.`, hint: 'A column that sorts has a button for a heading (`th.orderable`).' });
+  }
+  await reloadingIndex(this, scope, () => headings.nth(index).locator('button').first().click());
+});
+
+/**
+ * Assert what the index is sorted by and in which order, as its table says
+ * (`aria-sort` on the heading of the column) or, in another view, as the index
+ * announces it ("Blog sorted by Title, Ascending").
+ *
+ * Example #1: Then the index should be sorted by "Post Date" in "descending" order
+ * Example #2: Then the index should be sorted by "Entry" in "ascending" order
+ * Example #3: Then the index should be sorted by "Title" in "ascending" order
+ * Example #4: And the index should be sorted by "Filename" in "descending" order
+ * Example #5: Then the index should be sorted by "Expiry Date" in "ascending" order
+ */
+Then(/^the index should be sorted by "([^"]*)" in "(ascending|descending)" order$/, async function (attribute, direction) {
+  const scope = await indexScope(this);
+  await waitForIndex(this, scope);
+  const read = async () => scope.evaluate((root) => {
+    const names = [];
+    let order = '';
+    const cell = root.querySelector('div.elements thead th[aria-sort="ascending"], div.elements thead th[aria-sort="descending"]');
+    if (cell) {
+      names.push((cell.getAttribute('title') || cell.textContent || '').replace(/\s+/g, ' ').trim());
+      order = cell.getAttribute('aria-sort');
+    }
+    // The announcement names the attribute ("Title") where the table names its column ("Entry").
+    for (const region of document.querySelectorAll('[role="status"]')) {
+      const match = (region.textContent || '').replace(/\s+/g, ' ').match(/sorted by (.+), (Ascending|Descending)\s*$/);
+      if (match) {
+        names.push(match[1].trim());
+        order = order || match[2].toLowerCase();
+      }
+    }
+    return { names, order };
+  });
+  await eventually(this, read, (found) => found.names.includes(attribute) && found.order === direction, (found) => ({
+    message: `Expected the index to be sorted by "${attribute}" in ${direction} order, but it is sorted by ${found.names.length ? listed(found.names.map((name) => `"${name}"`)) : '(nothing it names)'}${found.order ? ` in ${found.order} order` : ''}.`,
+    hint: 'A structure is sorted by its structure. Sort with "I sort the index by ..." or "I click the "..." column heading of the index".',
+  }));
+});
+
+/**
+ * Show or hide a column of the table view with the "Table Columns" list of
+ * the "View" menu. The index keeps the choice for the source and the account,
+ * so a scenario that shows a column hides it again.
+ *
+ * Example #1: When I show the "Slug" column of the index
+ * Example #2: When I hide the "Slug" column of the index
+ * Example #3: When we show the "Date Updated" column of the index
+ * Example #4: And I hide the "Expiry Date" column of the index
+ * Example #5: When I show the "Entry Type" column of the index
+ */
+When(/^(I |we )*(show|hide) the "([^"]*)" column of the index$/, async function (pronounCase, verb, column) {
+  const scope = await indexScope(this);
+  await waitForIndex(this, scope);
+  const { button, menu } = await openViewMenu(this, scope);
+  const items = menu.locator('.checkbox-select-item');
+  const item = items.filter({ has: this.page.locator('label', { hasText: exactly(column) }) }).first();
+  if (!(await item.count())) {
+    const offered = (await items.locator('label').allTextContents()).map(clean);
+    await this.page.keyboard.press('Escape').catch(() => {});
+    throw friendly({ message: `The "View" menu of the index offers no "${column}" column. It offers: ${listed(offered)}.`, hint: 'The columns are listed under "Table Columns" in the table view. The first column (the title) always shows.' });
+  }
+  const wanted = verb === 'show';
+  if ((await item.locator('input[type="checkbox"]').isChecked()) !== wanted) {
+    // The checkbox is drawn by its label: a person clicks the label.
+    await reloadingIndex(this, scope, () => item.locator('label').click());
+  }
+  await this.page.keyboard.press('Escape').catch(() => {});
+  await menu.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => button.click().catch(() => {}));
+  const heading = scope.locator(`${LIST} thead th`).filter({ hasText: exactly(column) });
+  await assertPresence(heading, !wanted, { label: `the "${column}" column in the table of the index`, hint: 'Columns show in the table view of the index.', timeout: budget(this) });
+});
+
+/**
+ * Assert the level of an item in a structure: an entry of a structure
+ * section or a category, 1 at the top.
+ *
+ * Example #1: Then "Team" should be at level 2 in the index
+ * Example #2: Then "About" should be at level 1 in the index
+ * Example #3: Then "Contact" should be at level 1 in the index
+ * Example #4: And "Product" should be at level 1 in the index
+ * Example #5: Then "Pricing" should be at level 3 in the index
+ */
+Then(/^"([^"]*)" should be at level (\d+) in the index$/, async function (title, level) {
+  const scope = await indexScope(this);
+  await waitForIndex(this, scope);
+  const item = await requireIndexItem(this, scope, title);
+  const read = async () => item.getAttribute('data-level');
+  await eventually(this, read, (found) => found === String(level), (found) => ({
+    message: found ? `Expected "${title}" at level ${level} in the index, but it is at level ${found}.` : `"${title}" has no level: the index does not show a structure.`,
+    hint: 'Levels show in the structure view of a structure section or a category group (I switch the index to the "structure" view).',
+  }));
+});
+
+/**
+ * Move an item of a structure above or below another one by dragging its
+ * handle, and wait for the control panel to save the new position. The item
+ * keeps its level.
+ *
+ * Example #1: When I move "Contact" above "About" in the index
+ * Example #2: When I move "Contact" below "Team" in the index
+ * Example #3: When we move "Community" above "Product" in the index
+ * Example #4: And I move "Product" below "Community" in the index
+ * Example #5: When I move "About" below "Contact" in the index
+ */
+When(/^(I |we )*move "([^"]*)" (above|below) "([^"]*)" in the index$/, async function (pronounCase, title, where, target) {
+  const scope = await indexScope(this);
+  await waitForIndex(this, scope);
+  const item = await requireIndexItem(this, scope, title);
+  const other = await requireIndexItem(this, scope, target);
+  const handle = item.locator('a.move, .move.icon').first();
+  if (!(await handle.count())) {
+    throw friendly({ message: `"${title}" has no handle to move it by.`, hint: 'Items can be moved in the structure view of a structure section or a category group, by an account that may save them.' });
+  }
+  await item.scrollIntoViewIfNeeded().catch(() => {});
+  const from = await handle.boundingBox();
+  const to = await other.boundingBox();
+  if (!from || !to) {
+    throw friendly({ message: `"${title}" or "${target}" is not on the screen.`, hint: 'Both items have to show on the current page of the index.' });
+  }
+  const x = from.x + from.width / 2;
+  const y = from.y + from.height / 2;
+  await forgetNotifications(this);
+  const mouse = this.page.mouse;
+  await mouse.move(x, y);
+  await mouse.down();
+  // The drag starts once the pointer has moved a little; the pointer stays in the column of the handle, which keeps the level.
+  await mouse.move(x, y + (where === 'above' ? -6 : 6), { steps: 3 });
+  await mouse.move(x, where === 'above' ? to.y + 3 : to.y + to.height - 3, { steps: 12 });
+  await scope.locator(`${LIST} tr.draghelper`).first().waitFor({ state: 'attached', timeout: 3000 }).catch(() => {});
+  await mouse.up();
+  try {
+    await expectNotification(this, null, 'New position saved.');
+  } catch (err) {
+    const titles = await indexTitles(scope).catch(() => []);
+    throw friendly({ message: `Moving "${title}" ${where} "${target}" saved no new position. The index shows: ${listed(titles.slice(0, 30))}.`, hint: 'The control panel answers a move with the notification "New position saved.". An item that is already there does not move.' });
+  }
+  await waitForIndex(this, scope);
+});
+
+/**
+ * Assert that the selected items of the index offer, or do not offer, an
+ * action: a button of the action bar or an item of its gear menu. What an
+ * account may do with the selection decides what it is offered.
+ *
+ * Example #1: Then the selected items should offer the action "Delete"
+ * Example #2: Then the selected items should not offer the action "Delete"
+ * Example #3: Then the selected items should offer the action "Duplicate"
+ * Example #4: And the selected items should offer the action "Restore"
+ * Example #5: Then the selected items should not offer the action "Move to…"
+ */
+Then(/^the selected items should( not)* offer the action "([^"]*)"$/, async function (notCase, action) {
+  const scope = await indexScope(this);
+  await requireSelection(this, scope);
+  const offered = (await scope.locator('#actions-container .btn:not(.menubtn)').allInnerTexts()).map(clean).filter(Boolean);
+  if (await scope.locator('#actions-container button[aria-label="Set status"]').count()) offered.push('Set status');
+  const gear = scope.locator('#actions-container button[title="Actions"], #actions-container .menubtn[data-icon="settings"]').first();
+  if (await gear.count()) {
+    if ((await gear.getAttribute('aria-expanded')) !== 'true') await gear.click();
+    const menu = this.page.locator(`[id=${quoted(await gear.getAttribute('aria-controls'))}]`).first();
+    await menu.waitFor({ state: 'visible', timeout: budget(this) }).catch(() => {});
+    offered.push(...(await menu.locator('a, button').allInnerTexts()).map(clean).filter(Boolean));
+    await this.page.keyboard.press('Escape').catch(() => {});
+    await menu.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
+  }
+  const there = offered.includes(action);
+  if (notCase && there) {
+    throw friendly({ message: `Expected the selected items not to offer the action "${action}", but they do. They offer: ${listed(offered)}.`, hint: 'The actions depend on the items, the status filter and the permissions of the account.' });
+  }
+  if (!notCase && !there) {
+    throw friendly({ message: `Expected the selected items to offer the action "${action}". They offer: ${listed(offered)}.`, hint: 'The actions depend on the items, the status filter and the permissions of the account.' });
+  }
 });
 
 /**

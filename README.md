@@ -86,10 +86,11 @@ Feature: Entries
 | --- | --- | --- |
 | `craft-session.steps.js` | 12 | Login by a handle of the users registry or by credentials, logout, who is signed in, the login form and its errors, a password reset through the mail. |
 | `craft-cp.steps.js` | 15 | Control panel pages by name, the primary navigation and its sub navigation, the breadcrumb and the menu of a crumb, the heading, notifications, the "Unauthorized" screen, the section navigation, the system name. |
-| `craft-index.steps.js` | 22 | The element index: sources, search, the status filter, sorting, views, pagination, items, statuses, columns, selection, bulk actions, cleanup by title. |
+| `craft-index.steps.js` | 28 | The element index: sources, search, the status filter, sorting (the View menu and the column headings), columns, views, pagination, items, statuses, the levels of a structure and moving an item in it, selection, bulk actions and what the selection offers, cleanup by title. |
 | `craft-editor.steps.js` | 22 | The edit form: new entries and categories, saving, menus, tabs, stored changes, drafts and revisions, slide-out editors, the preview, the page on the site. |
 | `craft-fields.steps.js` | 25 | Fields by label: text, rich text, lightswitch, dropdown, date, relation fields, uploads, tags, matrix blocks, errors. |
-| `craft-users.steps.js` | 4 | User groups and permissions of an account, uploads to the assets index, thumbnails. |
+| `craft-assets.steps.js` | 4 | Uploads to the assets index, the question about a file whose name is taken, thumbnails. |
+| `craft-users.steps.js` | 3 | User groups and permissions of an account, and where a permission comes from. |
 | `craft-site.steps.js` | 5 | Published addresses, the pages of a listing, the page of an index item, the `X-Powered-By` header. |
 | `craft-helpers.js` | | Shared plumbing for the files above and for your own steps. It registers no step. |
 
@@ -104,7 +105,7 @@ project's own Twig, so this pack adds only what the system decides.
   its title, a menu item by its text, a navigation item by its label. The
   hooks of the control panel are the fallback: `data-label` on chips and cards,
   `data-attribute` on fields, `aria-current`, `aria-checked`, `aria-controls`,
-  `#nav`, `#crumbs`, `#notifications`, `.elements`.
+  `#nav`, `#crumbs`, `#notifications`, `.element-index`.
 - **The form in front.** Field steps act on the slide-out editor when one is
   open, on the editor of the preview when it is open, else on the page. A field
   on another tab of the form is found too: the step opens its tab.
@@ -177,6 +178,13 @@ development domain.
 
 One example of each step; the JSDoc block above each definition holds five.
 
+### `craft-assets.steps.js` (4)
+
+- `I upload the file "tests/fixtures/pixel.png" to the assets index`
+- `"Harbour" should show a thumbnail in the index`
+- `I should see the file conflict question`
+- `I answer the file conflict with "Keep both"`
+
 ### `craft-cp.steps.js` (15)
 
 - `I go to the control panel page "entries"`
@@ -248,7 +256,7 @@ One example of each step; the JSDoc block above each definition holds five.
 - `the "Summary" field should be marked as required`
 - `the "Summary" field should have 160 characters left`
 
-### `craft-index.steps.js` (22)
+### `craft-index.steps.js` (28)
 
 - `I open the "Blog" source of the index`
 - `I should see the "Blog" source in the index`
@@ -270,6 +278,12 @@ One example of each step; the JSDoc block above each definition holds five.
 - `2 items should be selected in the index`
 - `I set the status of the selected items to "Disabled"`
 - `I choose "Delete" for the selected items of the index`
+- `I click the "Entry" column heading of the index`
+- `the index should be sorted by "Post Date" in "descending" order`
+- `I show the "Slug" column of the index`
+- `"Team" should be at level 2 in the index`
+- `I move "Contact" above "About" in the index`
+- `the selected items should offer the action "Delete"`
 - `I open "Launch day" from the index`
 - `there is no entry titled "Draft idea"`
 
@@ -296,12 +310,11 @@ One example of each step; the JSDoc block above each definition holds five.
 - `I should be on page 2 of the listing`
 - `I visit the page of "Launch day" from the index`
 
-### `craft-users.steps.js` (4)
+### `craft-users.steps.js` (3)
 
 - `the account should be in the "Authors" user group`
 - `the permission "Save entries" under "Section - Blog" should be granted`
-- `I upload the file "tests/fixtures/pixel.png" to the assets index`
-- `"Harbour" should show a thumbnail in the index`
+- `the permission "View entries" under "Section - Blog" should come from a user group`
 
 ## Testing this package
 

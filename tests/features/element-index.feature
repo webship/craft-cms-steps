@@ -117,3 +117,56 @@ Feature: The element index
     Then I should see the notification "Entries deleted."
     And the index should hold 0 items
     And there is no entry titled "A note to copy"
+
+  Scenario: A column heading sorts the table
+    When I open the "Blog" source of the index
+    Then the index should be sorted by "Post Date" in "descending" order
+    When I click the "Entry" column heading of the index
+    Then the index should be sorted by "Entry" in "ascending" order
+    And the index should be sorted by "Title" in "ascending" order
+    And "A year of releases" should come before "Launch day" in the index
+    When I click the "Entry" column heading of the index
+    Then the index should be sorted by "Entry" in "descending" order
+    And "Launch day" should come before "A year of releases" in the index
+    When I click the "Post Date" column heading of the index
+    Then the index should be sorted by "Post Date" in "descending" order
+
+  Scenario: The view menu shows and hides a column
+    When I open the "Blog" source of the index
+    And I show the "Slug" column of the index
+    Then "Launch day" should show "launch-day" in the "Slug" column of the index
+    When I hide the "Slug" column of the index
+    Then "Launch day" should show "Live" in the "Status" column of the index
+
+  Scenario: A structure shows its levels
+    When I open the "Pages" source of the index
+    Then "About" should be at level 1 in the index
+    And "Team" should be at level 2 in the index
+    And "Contact" should be at level 1 in the index
+    And "About" should come before "Contact" in the index
+
+  Scenario: An entry of a structure moves and moves back
+    When I open the "Pages" source of the index
+    And I move "Contact" above "About" in the index
+    Then I should see the notification "New position saved."
+    And "Contact" should come before "About" in the index
+    And "Contact" should be at level 1 in the index
+    And "Team" should be at level 2 in the index
+    When I reload the page
+    Then "Contact" should come before "About" in the index
+    When I move "Contact" below "Team" in the index
+    Then "About" should come before "Contact" in the index
+    And "Team" should come before "Contact" in the index
+    And "Contact" should be at level 1 in the index
+
+  Scenario: The selection offers the actions the account may run
+    When I open the "Blog" source of the index
+    And I select "Launch day" in the index
+    Then the selected items should offer the action "Set status"
+    And the selected items should offer the action "Duplicate"
+    And the selected items should offer the action "Delete"
+    And the selected items should not offer the action "Restore"
+    When I filter the index by the "Trashed" status
+    Then the index should hold 0 items
+    When I filter the index by the "All" status
+    Then the index should hold 14 items
