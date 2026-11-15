@@ -178,6 +178,21 @@ signs in to an account or to the plugin store.
 
 One example of each step; the JSDoc block above each definition holds five.
 
+### `craft-session.steps.js` (12)
+
+- `I am logged in to the control panel as "admin"`
+- `I log in to the control panel with the username "admin" and the password "wrong-password"`
+- `I log out of the control panel`
+- `I should be logged in to the control panel`
+- `I should be logged in to the control panel as "admin"`
+- `I should see the control panel login form`
+- `I should see the login error "Invalid username or password."`
+- `I ask for a password reset for "admin"`
+- `I should see the password reset confirmation`
+- `I open the password reset link sent to "admin@example.com"`
+- `I choose the new password "Admin123456789!"`
+- `I should see the new password error "should contain at least 6 characters"`
+
 ### `craft-assets.steps.js` (4)
 
 - `I upload the file "tests/fixtures/pixel.png" to the assets index`
@@ -288,21 +303,6 @@ One example of each step; the JSDoc block above each definition holds five.
 - `the selected items should offer the action "Delete"`
 - `I open "Launch day" from the index`
 - `there is no entry titled "Draft idea"`
-
-### `craft-session.steps.js` (12)
-
-- `I am logged in to the control panel as "admin"`
-- `I log in to the control panel with the username "admin" and the password "wrong-password"`
-- `I log out of the control panel`
-- `I should be logged in to the control panel`
-- `I should be logged in to the control panel as "admin"`
-- `I should see the control panel login form`
-- `I should see the login error "Invalid username or password."`
-- `I ask for a password reset for "admin"`
-- `I should see the password reset confirmation`
-- `I open the password reset link sent to "admin@example.com"`
-- `I choose the new password "Admin123456789!"`
-- `I should see the new password error "should contain at least 6 characters"`
 
 ### `craft-site.steps.js` (5)
 
