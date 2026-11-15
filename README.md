@@ -1,3 +1,5 @@
+<p align="center"><img src="https://raw.githubusercontent.com/webship/craft-cms-steps/2.0.x/assets/logo.svg" alt="Craft CMS logo" width="96"></p>
+
 # craft-cms-steps
 
 Cucumber step definitions for testing Craft CMS sites with
@@ -354,3 +356,7 @@ their own in the control panel: they are added and removed in a tags field.
 ## License
 
 MIT
+
+## Logo
+
+The Craft CMS logo in this README comes from Simple Icons 16.37.0 (CC0-1.0), filled with the colour the set lists for the brand. The Craft CMS name and logo are trademarks of their owner; this pack is not affiliated with or endorsed by them.
