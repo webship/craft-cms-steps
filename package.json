@@ -1,6 +1,6 @@
 {
   "name": "@webship-js/craft-cms-steps",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Craft CMS step definitions for webship-js (Playwright and Cucumber): the control panel session, navigation and notices, entries with drafts and revisions, the element index, slide-out editors, fields, assets, categories, users and permissions, and the front end.",
   "main": "tests/step-definitions/craft-session.steps.js",
   "files": [
