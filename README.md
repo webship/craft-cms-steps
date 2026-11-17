@@ -318,12 +318,17 @@ One example of each step; the JSDoc block above each definition holds five.
 npm install
 SITE_DIR="$PWD/../craft-cms-site" .github/scripts/build-ddev-site.sh
 npm run test:examples      # the examples and the features against the step patterns
+npm run test:paths         # a feature or a scenario named on the command line runs alone
 npx cucumber-js --dry-run  # no undefined and no ambiguous step
 npm test                   # the suite, against the site
 npm run test:must-fail     # assertions that must fail, each with its message
 ```
 
-`LAUNCH_URL` points the suite at another site; `FEATURES` runs a subset
+`LAUNCH_URL` points the suite at another site; `npx cucumber-js
+tests/features/entries.feature` runs one feature and `npx cucumber-js
+tests/features/entries.feature:<line>` one scenario (the line of its
+`Scenario:`; the paths of `cucumber.js` are left out when the command line
+names any); `FEATURES` runs a subset too
 (`FEATURES=tests/features/entries.feature npm test`); `CUCUMBER_TAGS=@critical`
 runs the smoke lane; `HEADLESS=false` shows the browser.
 
