@@ -142,6 +142,22 @@ limits login attempts from one address (the `defaultRateLimit` general setting,
 The steps are proven on the free edition only. User groups, permissions and
 further accounts belong to the paid editions: the pack has no step for them.
 
+## Test users
+
+The account this repository's suite logs in as, exactly as `cucumber.js` lists
+it in `worldParameters.users` (the default values; `ADMIN_USER` and
+`ADMIN_PASSWORD` replace them).
+[`.github/scripts/build-ddev-site.sh`](.github/scripts/build-ddev-site.sh)
+creates it on the local test site (the installer makes it), and CI does the
+same on the runner. It is a placeholder credential of that throwaway site, not
+of any real one.
+
+```json
+{
+  "admin": { "username": "admin", "password": "Admin123456789!" }
+}
+```
+
 ## A test site
 
 [`.github/scripts/build-ddev-site.sh`](.github/scripts/build-ddev-site.sh)
