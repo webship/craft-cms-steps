@@ -7,7 +7,9 @@ Feature: The control panel session
   @critical
   Scenario: An admin logs in and out
     Given I am logged in to the control panel as "admin"
-    Then I should be logged in to the control panel as "admin"
+    Then I should be logged in to the control panel
+    And I should be logged in to the control panel as "admin"
+    But I should not see the control panel login form
     And the control panel heading should be "Dashboard"
     And the control panel system name should be "Webship Test Site"
     When I log out of the control panel
