@@ -5,6 +5,8 @@
   "main": "tests/step-definitions/craft-session.steps.js",
   "files": [
     "tests/step-definitions/",
+    "tests/features/",
+    "tests/fixtures/",
     "README.md",
     "LICENSE"
   ],
