@@ -24,6 +24,96 @@ CI builds a real Craft CMS site with [DDEV](https://ddev.com) and runs the whole
 suite against it, twice, on every push and pull request; see
 [`.github/workflows/test.yml`](.github/workflows/test.yml).
 
+## From nothing to a green run
+
+What the machine needs: Docker, [DDEV](https://ddev.com), git, python3, and Node.js 20 or later with npm. PHP and the database run in DDEV's containers.
+
+**1. The site.** The pack's own build script (the one CI runs) installs the current Craft CMS 5 with the CKEditor plugin in a DDEV project, seeds the sections, fields and content of [A test site](#a-test-site) and copies its Twig templates; the installer creates the account of [Test users](#test-users). It takes a minute or two.
+
+```bash
+git clone https://github.com/webship/craft-cms-steps.git
+SITE_DIR="$PWD/craft-site" craft-cms-steps/.github/scripts/build-ddev-site.sh
+```
+
+The site answers at `https://craftcmssteps.ddev.site` and its control panel at `https://craftcmssteps.ddev.site/admin`.
+
+**2. A test project.**
+
+```bash
+mkdir craft-tests && cd craft-tests
+npm init -y
+npm install --save-dev webship-js @webship-js/craft-cms-steps
+npx init-webship-js
+```
+
+`npx init-webship-js` writes `cucumber.js`, `playwright.config.ts`, the `tests/` folders with a first feature and the `npm test` scripts, and installs Chromium. npm usually runs it already when it installs webship-js; a second run changes nothing.
+
+**3. `cucumber.js`.** Replace the file with the wiring of the pack: the step files of webship-js and of the pack, the address of the site, the control panel and listing settings, the site's mailbox, and the account (the JSON of [Test users](#test-users)).
+
+```javascript
+module.exports = {
+  default: {
+    requireModule: ['tsx/cjs'],
+    require: [
+      'node_modules/webship-js/tests/step-definitions/**/*.js',
+      'node_modules/@webship-js/craft-cms-steps/tests/step-definitions/*.js',
+      'tests/step-definitions/**/*.js',
+    ],
+    paths: ['tests/features/**/*.feature'],
+    format: ['@cucumber/pretty-formatter', 'json:tests/reports/cucumber_report.json'],
+    worldParameters: {
+      launchUrl: process.env.LAUNCH_URL || 'https://craftcmssteps.ddev.site',
+      cpTrigger: 'admin',
+      pageTrigger: 'p',
+      mailUrl: 'https://craftcmssteps.ddev.site:8026',
+      reuseSessions: true,
+      // The waits webship-js adds around each page, scenario and step (milliseconds).
+      minWaitTime: { page: 3000, before_scenario: 0, after_scenario: 0, before_step: 0, after_step: 0 },
+      users: {
+        admin: { username: 'admin', password: 'Admin123456789!' },
+      },
+    },
+  },
+};
+```
+
+**4. A first feature**, `tests/features/first-run.feature`:
+
+```gherkin
+Feature: First run
+  Scenario: The administrator logs in to the control panel
+    Given I am logged in to the control panel as "admin"
+    Then the control panel heading should be "Dashboard"
+
+  Scenario: A page of the site is published
+    Given I am on the homepage
+    Then I should see "Welcome to the test site"
+    And "about" should be published on the site
+```
+
+**5. Run it.**
+
+```bash
+npm test
+```
+
+A green first run prints every step, then the summary (the starter feature of `npx init-webship-js` and the two scenarios above, passed) and the HTML report it wrote:
+
+```
+3 scenarios (3 passed)
+7 steps (7 passed)
+0m06.095s (executing steps: 0m06.059s)
+[webship-js] HTML report → …/craft-tests/tests/reports/cucumber_report.html
+```
+
+From there, copy the features of [`tests/features/`](tests/features/) (they also ship in the package, under `node_modules/@webship-js/craft-cms-steps/tests/features/`, with the file `tests/fixtures/pixel.png` they upload): together they use every step of the pack.
+
+### What the suite tests
+
+The features of this repository run every step of the pack against the test site, twice in a row in CI on every change, and the assertions that must fail after them: logging in to and out of the control panel (by the username and by the email address), refused logins, the login form's own checks, a password reset through the site's mail; the primary navigation, its sub navigation, named pages, the breadcrumb and its menus, the section navigation, the screens the free edition does not have; entries from a new entry to the site and to the trash and back, required fields and refused values, stored changes and discarding them, drafts and revisions, scheduling (pending and expired entries); the element index (sources, search, status filter, sorting, columns and views, cards, pagination, bulk actions, a structure and moving an entry in it, the actions the selection offers); slide-out editors; the preview; the fields of every common kind (plain text, rich text, lightswitch, dropdown, date, assets, entries, categories, tags, matrix blocks); assets (upload, a name that is taken, thumbnails); categories; and the site: published addresses, nested addresses of a structure, listings with pages and search, a topic page, the 404 page, the `X-Powered-By` header and an accessibility audit of three pages.
+
+Not tested: everything of the paid editions (further accounts, user groups, permissions), globals, several sites, the prompt for the password before a sensitive change, inline editing and the export of an index, the cards and index views of a matrix field, nested entries inside rich text, asset folders, the image editor, plugins other than CKEditor, and logging in on the site itself. What a run leaves on the site: the tag the fields feature types into a tags field, after the first run (the control panel has no screen to delete a tag), and the revisions the system records each time a scenario saves an entry, eight a run (an entry changed and changed back keeps both versions in its history).
+
 ## Requirements
 
 - Node.js 20 or later
@@ -355,9 +445,12 @@ cannot fail proves nothing.
 
 The suite leaves the site as it found it: content a scenario creates is removed
 (trash included), content of the site build a scenario changes is changed back.
-One thing stays: a tag. Typing a new tag into a tags field creates it at once,
+Two things stay. A tag: typing a new tag into a tags field creates it at once,
 and the control panel has no screen to delete a tag, so the tag "a tag the
 suite made" of the fields feature remains in its tag group after the first run.
+And the revisions: the system keeps a revision each time a scenario saves an
+entry, so an entry changed and changed back has both versions in its history
+(eight more a run).
 
 ## How the steps were written
 
