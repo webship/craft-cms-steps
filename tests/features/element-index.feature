@@ -10,7 +10,10 @@ Feature: The element index
 
   @critical
   Scenario: Sources narrow the index
-    Then the "All entries" source of the index should be selected
+    Then I should see the "Blog" source in the index
+    And I should see the "Pages" source in the index
+    But I should not see the "Products" source in the index
+    And the "All entries" source of the index should be selected
     When I open the "Blog" source of the index
     Then the "Blog" source of the index should be selected
     And the index should hold 14 items
