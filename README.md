@@ -37,6 +37,30 @@ SITE_DIR="$PWD/craft-site" craft-cms-steps/.github/scripts/build-ddev-site.sh
 
 The site answers at `https://craftcmssteps.ddev.site` and its control panel at `https://craftcmssteps.ddev.site/admin`.
 
+In the [Webship Workspace](https://github.com/webship/workspace), its Craft CMS plugin builds the site instead, the current Craft CMS 5 (the free Solo edition), in a sites folder of the workspace (`test/` here; `dev/`, `sandboxes/` and `demos/` work the same):
+
+```bash
+bash core/scripts/plugins.sh --require craft-cms --with-needs
+bash core/scripts/plugins.sh --activate craft-cms --with-needs
+bash core/scripts/plugins.sh --install craft-cms
+bash test/cmd-craft-cms-project.sh mysite --install --add-users
+```
+
+That site answers at `https://mysite.ddev.site`. Its one account is the plugin's (`administrator`, password `dD.123123ddd`; step 3 names it). It has none of the content of [A test site](#a-test-site), which the second scenario of the first feature and the features of [`tests/features/`](tests/features/) read, and it runs in dev mode. The pieces of the script above give it both, from the workspace folder (the seed writes as the site's first admin account, and names it "Ada Admin"):
+
+```bash
+git clone https://github.com/webship/craft-cms-steps.git
+cd test/mysite
+ddev composer require craftcms/ckeditor --no-interaction
+ddev craft plugin/install ckeditor
+cp -r ../../craft-cms-steps/site/templates/. templates/
+cp ../../craft-cms-steps/site/seed.php seed.php
+ddev exec php seed.php
+ddev exec sed -i 's/^CRAFT_DEV_MODE=.*/CRAFT_DEV_MODE=false/' .env
+```
+
+The first feature then passes there, and so do the features of `tests/features/` but for the four scenarios that name the account and the site of the script: the username `admin`, the address `admin@example.com` and its password, and the site name "Webship Test Site".
+
 **2. A test project.**
 
 ```bash
@@ -77,6 +101,8 @@ module.exports = {
 };
 ```
 
+On a site from the Webship Workspace (step 1), the account is the plugin's: `admin: { username: 'administrator', password: 'dD.123123ddd' }`, and `mailUrl` is `https://mysite.ddev.site:8026`. Its address goes in `LAUNCH_URL` (step 5).
+
 **4. A first feature**, `tests/features/first-run.feature`:
 
 ```gherkin
@@ -97,6 +123,7 @@ Feature: First run
 npm test
 ```
 
+(`LAUNCH_URL=https://mysite.ddev.site npm test` for a site at another address.)
 A green first run prints every step, then the summary (the starter feature of `npx init-webship-js` and the two scenarios above, passed) and the HTML report it wrote:
 
 ```
