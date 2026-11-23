@@ -26,7 +26,7 @@ suite against it, twice, on every push and pull request; see
 
 ## From nothing to a green run
 
-What the machine needs: Docker, [DDEV](https://ddev.com), git, python3, and Node.js 20 or later with npm. PHP and the database run in DDEV's containers.
+What the machine needs: Docker, [DDEV](https://ddev.com), git, python3, and Node.js 24 or later with npm. PHP and the database run in DDEV's containers.
 
 **1. The site.** The pack's own build script (the one CI runs) installs the current Craft CMS 5 with the CKEditor plugin in a DDEV project, seeds the sections, fields and content of [A test site](#a-test-site) and copies its Twig templates; the installer creates the account of [Test users](#test-users). It takes a minute or two.
 
@@ -143,7 +143,7 @@ Not tested: everything of the paid editions (further accounts, user groups, perm
 
 ## Requirements
 
-- Node.js 20 or later
+- Node.js 24 or later
 - A webship-js 2.0 test project (webship-js 2.0.10 or later)
 - A Craft CMS 5 site to test, and accounts on it for the suite
 
